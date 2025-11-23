@@ -1,1 +1,2 @@
+eval "$(mise activate bash)"
 npx --no -- commitlint --edit $1
