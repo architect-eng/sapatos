@@ -5,7 +5,7 @@ import * as pg from 'pg';
 
 export type EnumData = { [k: string]: string[] };
 
-export const enumDataForSchema = async (schemaName: string, queryFn: (q: pg.QueryConfig) => Promise<pg.QueryResult<any>>) => {
+export const enumDataForSchema = async (schemaName: string, queryFn: (q: pg.QueryConfig) => Promise<pg.QueryResult>) => {
   const
     { rows } = await queryFn({
       text: `

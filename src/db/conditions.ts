@@ -1,5 +1,6 @@
 
 
+import type { Whereable } from 'sapatos/schema';
 import {
   SQLFragment,
   ParentColumn,
@@ -10,9 +11,7 @@ import {
   self,
   vals,
 } from './core';
-
 import { mapWithSeparator } from './utils';
-import type { Whereable } from 'sapatos/schema';
 
 const conditionalParam = (a: any) => a instanceof SQLFragment || a instanceof ParentColumn || a instanceof Parameter ? a : param(a);
 

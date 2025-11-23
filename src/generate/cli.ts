@@ -4,8 +4,8 @@
 
 
 import * as fs from 'fs';
-import { generate } from ".";
 import type { Config } from './config';
+import { generate } from ".";
 
 
 const recursivelyInterpolateEnvVars = (obj: any): any =>

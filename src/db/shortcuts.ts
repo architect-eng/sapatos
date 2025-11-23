@@ -14,7 +14,6 @@ import type {
   Table,
   Column,
 } from 'sapatos/schema';
-
 import {
   AllType,
   all,
@@ -27,7 +26,6 @@ import {
   param,
   Default,
 } from './core';
-
 import {
   completeKeysWithDefaultValue,
   mapWithSeparator,
@@ -241,7 +239,7 @@ export const upsert: UpsertSignatures = function (
     firstRow = completedValues[0],
     insertColsSQL = cols(firstRow),
     insertValuesSQL = mapWithSeparator(completedValues, sql`, `, v => sql`(${vals(v)})`),
-    colNames = Object.keys(firstRow) as Column[],
+    colNames = Object.keys(firstRow),
     updateValues = options?.updateValues ?? {},
     updateColumns = [...new Set(  // deduplicate the keys here
       [...specifiedUpdateColumns as string[] ?? colNames, ...Object.keys(updateValues)]
@@ -521,7 +519,7 @@ export const select: SelectSignatures = function (
     groupBySQL = !groupBy ? [] : sql` GROUP BY ${groupBy instanceof SQLFragment || typeof groupBy === 'string' ? groupBy : cols(groupBy)}`,
     havingSQL = !having ? [] : sql` HAVING ${having}`,
     orderSQL = order === undefined ? [] :
-      sql` ORDER BY ${mapWithSeparator(order as OrderSpecForTable<Table>[], sql`, `, o => {  // `as` clause is required when TS not strict
+      sql` ORDER BY ${mapWithSeparator(order, sql`, `, o => {  // `as` clause is required when TS not strict
         if (!['ASC', 'DESC'].includes(o.direction)) throw new Error(`Direction must be ASC/DESC, not '${o.direction}'`);
         if (o.nulls && !['FIRST', 'LAST'].includes(o.nulls)) throw new Error(`Nulls must be FIRST/LAST/undefined, not '${o.nulls}'`);
         return sql`${o.by} ${raw(o.direction)}${o.nulls ? sql` NULLS ${raw(o.nulls)}` : []}`;
@@ -533,7 +531,7 @@ export const select: SelectSignatures = function (
     lockSQL = lock === undefined ? [] : (lock as SelectLockingOptions<string>[]).map(lock => {  // `as` clause is required when TS not strict
       const
         ofTables = lock.of === undefined || Array.isArray(lock.of) ? lock.of : [lock.of],
-        ofClause = ofTables === undefined ? [] : sql` OF ${mapWithSeparator(ofTables as Table[], sql`, `, t => t)}`;  // `as` clause is required when TS not strict
+        ofClause = ofTables === undefined ? [] : sql` OF ${mapWithSeparator(ofTables, sql`, `, t => t)}`;  // `as` clause is required when TS not strict
       return sql` FOR ${raw(lock.for)}${ofClause}${lock.wait ? sql` ${raw(lock.wait)}` : []}`;
     }),
     lateralSQL = lateral === undefined ? [] :

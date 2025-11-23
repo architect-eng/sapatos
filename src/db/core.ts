@@ -1,16 +1,14 @@
 
 
 import type * as pg from 'pg';
-
-import { getConfig, SQLQuery } from './config';
-import { isPOJO, NoInfer } from './utils';
-
 import type {
   Updatable,
   Whereable,
   Table,
   Column,
 } from 'sapatos/schema';
+import { getConfig, SQLQuery } from './config';
+import { isPOJO, NoInfer } from './utils';
 
 const timing = typeof performance === 'object' ?
   () => performance.now() :
@@ -197,7 +195,7 @@ export function parent<T extends Column | undefined = Column | undefined>(x?: T)
 
 
 export type GenericSQLExpression = SQLFragment<any, any> | Parameter | DefaultType | DangerousRawString | SelfType;
-export type SQLExpression = Table | ColumnNames<Updatable | (keyof Updatable)[]> | ColumnValues<Updatable | any[]> | Whereable | Column | ParentColumn | GenericSQLExpression;
+export type SQLExpression = Table | ColumnNames<Updatable | (keyof Updatable)[]> | ColumnValues<Updatable | any[]> | Whereable   | ParentColumn | GenericSQLExpression;
 export type SQL = SQLExpression | SQLExpression[];
 
 export type Queryable = pg.ClientBase | pg.Pool;
@@ -408,7 +406,7 @@ export class SQLFragment<RunResult = pg.QueryResult['rows'], Constraint = never>
 
       } else {
         const
-          columnNames = <Column[]>Object.keys(expression.value).sort(),
+          columnNames = Object.keys(expression.value).sort(),
           columnValues = columnNames.map(k => (<any>expression.value)[k]);
 
         for (let i = 0, len = columnValues.length; i < len; i++) {
@@ -427,7 +425,7 @@ export class SQLFragment<RunResult = pg.QueryResult['rows'], Constraint = never>
       if (expression === globalThis) throw new Error('Did you use `self` (the global object) where you meant `db.self` (the Sapatos value)? The global object cannot be embedded in a query.');
 
       // must be a Whereable object, so put together a WHERE clause
-      const columnNames = <Column[]>Object.keys(expression).sort();
+      const columnNames = Object.keys(expression).sort();
 
       if (columnNames.length) {  // if the object is not empty
         result.text += '(';

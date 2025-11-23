@@ -62,7 +62,7 @@ interface ToDate {
  * `"UTC"` if the input is to be interpreted as UTC or `"local"` if it is to be
  * interpreted in the JavaScript environment's local time
  */
-export const toDate: ToDate = function (d: string, tzInterpretation?: TzLocalOrUTC | undefined) {
+export const toDate: ToDate = function (d: string, tzInterpretation?: TzLocalOrUTC  ) {
   let dateMatch;
   if (d === null) return null;
   switch (tzInterpretation) {

@@ -3,9 +3,9 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import { finaliseConfig, Config } from './config';
+import { header } from './header';
 import * as legacy from './legacy';
 import { tsForConfig } from './tsOutput';
-import { header } from './header';
 
 
 /**

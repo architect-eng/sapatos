@@ -1,11 +1,10 @@
 
 
 import * as pg from 'pg';
-
+import type { SchemaVersionCanary } from "../db/canary";
+import type { CompleteConfig } from './config';
 import { enumDataForSchema, enumTypesForEnumData } from './enums';
 import { header } from './header';
-import type { CompleteConfig } from './config';
-import type { SchemaVersionCanary } from "../db/canary";
 import {
   Relation,
   relationsInSchema,

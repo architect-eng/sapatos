@@ -1,11 +1,11 @@
 
 
 import * as pg from 'pg';
+import { getConfig } from './config';
+import { sql, raw } from './core';
+import type { Queryable } from './core';
 import { isDatabaseError } from './pgErrors';
 import { wait } from './utils';
-import { sql, raw } from './core';
-import { getConfig } from './config';
-import type { Queryable } from './core';
 
 
 export enum IsolationLevel {

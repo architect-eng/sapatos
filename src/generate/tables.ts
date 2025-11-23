@@ -1,10 +1,10 @@
 
 
 import * as pg from 'pg';
-import { tsTypeForPgType } from './pgTypes';
-import type { EnumData } from './enums';
-import type { CustomTypes } from './tsOutput';
 import { CompleteConfig } from './config';
+import type { EnumData } from './enums';
+import { tsTypeForPgType } from './pgTypes';
+import type { CustomTypes } from './tsOutput';
 
 
 export interface Relation {
@@ -14,7 +14,7 @@ export interface Relation {
   insertable: boolean;
 }
 
-export const relationsInSchema = async (schemaName: string, queryFn: (q: pg.QueryConfig) => Promise<pg.QueryResult<any>>): Promise<Relation[]> => {
+export const relationsInSchema = async (schemaName: string, queryFn: (q: pg.QueryConfig) => Promise<pg.QueryResult>): Promise<Relation[]> => {
   const { rows } = await queryFn({
     text: `
       SELECT $1 as schema
@@ -43,7 +43,7 @@ export const relationsInSchema = async (schemaName: string, queryFn: (q: pg.Quer
   return rows;
 };
 
-const columnsForRelation = async (rel: Relation, schemaName: string, queryFn: (q: pg.QueryConfig) => Promise<pg.QueryResult<any>>) => {
+const columnsForRelation = async (rel: Relation, schemaName: string, queryFn: (q: pg.QueryConfig) => Promise<pg.QueryResult>) => {
   const { rows } = await queryFn({
     text:
       rel.type === 'mview'
@@ -98,7 +98,7 @@ export const definitionForRelationInSchema = async (
   enums: EnumData,
   customTypes: CustomTypes,  // an 'out' parameter
   config: CompleteConfig,
-  queryFn: (q: pg.QueryConfig) => Promise<pg.QueryResult<any>>,
+  queryFn: (q: pg.QueryConfig) => Promise<pg.QueryResult>,
 ) => {
   const
     rows = await columnsForRelation(rel, schemaName, queryFn),
