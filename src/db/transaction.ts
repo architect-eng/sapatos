@@ -106,14 +106,13 @@ export async function transaction<T, M extends IsolationLevel>(
 
   const
     config = getConfig(),
-    { transactionListener } = config,
     maxAttempts = config.transactionAttemptsMax,
     { minMs, maxMs } = config.transactionRetryDelay;
 
   try {
     for (let attempt = 1; ; attempt++) {
       try {
-        if (attempt > 1 && transactionListener) transactionListener(`Retrying transaction, attempt ${String(attempt)} of ${String(maxAttempts)}`, txnId);
+        if (attempt > 1 && config.transactionListener) config.transactionListener(`Retrying transaction, attempt ${String(attempt)} of ${String(maxAttempts)}`, txnId);
 
         await sql`START TRANSACTION ISOLATION LEVEL ${raw(isolationLevel)}`.run(txnClient);
         const result = await callback(txnClient as TxnClient<IsolationSatisfying<M>>);
@@ -134,12 +133,12 @@ export async function transaction<T, M extends IsolationLevel>(
           if (attempt < maxAttempts) {
             const delayBeforeRetry = Math.round(minMs + (maxMs - minMs) * Math.random());
             const errorCode = (err as { code?: string }).code ?? 'unknown';
-            if (transactionListener) transactionListener(`Transaction rollback (code ${errorCode}) on attempt ${String(attempt)} of ${String(maxAttempts)}, retrying in ${String(delayBeforeRetry)}ms`, txnId);
+            if (config.transactionListener) config.transactionListener(`Transaction rollback (code ${errorCode}) on attempt ${String(attempt)} of ${String(maxAttempts)}, retrying in ${String(delayBeforeRetry)}ms`, txnId);
             await wait(delayBeforeRetry);
 
           } else {
             const errorCode = (err as { code?: string }).code ?? 'unknown';
-            if (transactionListener) transactionListener(`Transaction rollback (code ${errorCode}) on attempt ${String(attempt)} of ${String(maxAttempts)}, giving up`, txnId);
+            if (config.transactionListener) config.transactionListener(`Transaction rollback (code ${errorCode}) on attempt ${String(attempt)} of ${String(maxAttempts)}, giving up`, txnId);
             throw err;
           }
 

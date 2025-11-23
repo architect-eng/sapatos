@@ -14,6 +14,29 @@ export interface Relation {
   insertable: boolean;
 }
 
+interface RelationRow {
+  schema: string;
+  name: string;
+  lname: string;
+  type: 'table' | 'view' | 'fdw' | 'mview';
+  insertable: boolean;
+}
+
+interface ColumnRow {
+  column: string;
+  isNullable: boolean;
+  isGenerated: boolean;
+  hasDefault: boolean;
+  defaultValue: string | null;
+  udtName: string;
+  domainName: string | null;
+  description: string | null;
+}
+
+interface UniqueIndexRow {
+  indexname: string;
+}
+
 export const relationsInSchema = async (schemaName: string, queryFn: (q: pg.QueryConfig) => Promise<pg.QueryResult>): Promise<Relation[]> => {
   const { rows } = await queryFn({
     text: `
@@ -38,12 +61,12 @@ export const relationsInSchema = async (schemaName: string, queryFn: (q: pg.Quer
       ORDER BY lname, name
     `,
     values: [schemaName]
-  });
+  }) as pg.QueryResult<RelationRow>;
 
   return rows;
 };
 
-const columnsForRelation = async (rel: Relation, schemaName: string, queryFn: (q: pg.QueryConfig) => Promise<pg.QueryResult>) => {
+const columnsForRelation = async (rel: Relation, schemaName: string, queryFn: (q: pg.QueryConfig) => Promise<pg.QueryResult>): Promise<ColumnRow[]> => {
   const { rows } = await queryFn({
     text:
       rel.type === 'mview'
@@ -56,7 +79,7 @@ const columnsForRelation = async (rel: Relation, schemaName: string, queryFn: (q
         , NULL as "defaultValue"
         , CASE WHEN t1.typtype = 'd' THEN t2.typname ELSE t1.typname END AS "udtName"
         , CASE WHEN t1.typtype = 'd' THEN t1.typname ELSE NULL END AS "domainName"
-        , d.description AS "description"     
+        , d.description AS "description"
         FROM pg_catalog.pg_class c
         LEFT JOIN pg_catalog.pg_attribute a ON c.oid = a.attrelid
         LEFT JOIN pg_catalog.pg_namespace n ON c.relnamespace = n.oid
@@ -82,7 +105,7 @@ const columnsForRelation = async (rel: Relation, schemaName: string, queryFn: (q
         WHERE c.table_name = $1 AND c.table_schema = $2
         ORDER BY "column"`,
     values: [rel.name, schemaName],
-  });
+  }) as pg.QueryResult<ColumnRow>;
 
   return rows;
 };
@@ -108,7 +131,7 @@ export const definitionForRelationInSchema = async (
     insertables: string[] = [],
     updatables: string[] = [];
 
-  rows.forEach(row => {
+  rows.forEach((row: ColumnRow) => {
     const { column, isGenerated, isNullable, hasDefault, udtName, domainName } = row;
     let
       selectableType = tsTypeForPgType(udtName, enums, 'Selectable', config),
@@ -122,16 +145,16 @@ export const definitionForRelationInSchema = async (
       schemaPrefix = config.unprefixedSchema === schemaName ? '' : `${schemaName}.`,
       prefixedRelName = schemaPrefix + rel.name,
       columnOptions =
-        (config.columnOptions[prefixedRelName] && config.columnOptions[prefixedRelName][column]) ??
-        (config.columnOptions["*"] && config.columnOptions["*"][column]),
+        (config.columnOptions[prefixedRelName] !== undefined && config.columnOptions[prefixedRelName][column] !== undefined ? config.columnOptions[prefixedRelName][column] : undefined) ??
+        (config.columnOptions["*"] !== undefined && config.columnOptions["*"][column] !== undefined ? config.columnOptions["*"][column] : undefined),
       isInsertable = rel.insertable && !isGenerated && columnOptions?.insert !== 'excluded',
       isUpdatable = rel.insertable && !isGenerated && columnOptions?.update !== 'excluded',
-      insertablyOptional = isNullable || hasDefault || columnOptions?.insert === 'optional' ? '?' : '',
+      insertablyOptional = (isNullable || hasDefault || columnOptions?.insert === 'optional') ? '?' : '',
       orNull = isNullable ? ' | null' : '',
-      orDefault = isNullable || hasDefault ? ' | db.DefaultType' : '',
+      orDefault = (isNullable || hasDefault) ? ' | db.DefaultType' : '',
       possiblyQuotedColumn = quoteIfIllegalIdentifier(column);
 
-    // Now, 4 cases: 
+    // Now, 4 cases:
     //   1. null domain, known udt        <-- standard case
     //   2. null domain, unknown udt      <-- custom type:       create type file, with placeholder 'any'
     //   3. non-null domain, known udt    <-- alias type:        create type file, with udt-based placeholder
@@ -141,7 +164,7 @@ export const definitionForRelationInSchema = async (
 
     if (selectableType === 'any' || domainName !== null) {  // cases 2, 3, 4
       const
-        customType: string = domainName ?? udtName,
+        customType: string = domainName !== null ? domainName : udtName,
         prefixedCustomType = transformCustomType(customType, config);
 
       customTypes[prefixedCustomType] = selectableType;
@@ -172,7 +195,7 @@ export const definitionForRelationInSchema = async (
         WHERE i.tablename = $1 AND i.schemaname = $2
         ORDER BY i.indexname`,
       values: [rel.name, schemaName]
-    }),
+    }) as pg.QueryResult<UniqueIndexRow>,
     uniqueIndexes = result.rows;
 
   const
@@ -208,7 +231,7 @@ export namespace ${rel.name} {
     ${updatables.length > 0 ? updatables.join('\n    ') : `[key: string]: never;`}
   }
   export type UniqueIndex = ${uniqueIndexes.length > 0 ?
-        uniqueIndexes.map(ui => "'" + ui.indexname + "'").join(' | ') :
+        uniqueIndexes.map((ui: UniqueIndexRow) => `'${ui.indexname}'`).join(' | ') :
         'never'};
   export type Column = keyof Selectable;
   export type OnlyCols<T extends readonly Column[]> = Pick<Selectable, T[number]>;
@@ -286,7 +309,7 @@ export type AllMaterializedViews = ${schemaMappedArray(schemas, 'AllMaterialized
 export type AllTablesAndViews = ${schemaMappedArray(schemas, 'AllTablesAndViews')};
 `;
 
-const createColumnDoc = (config: CompleteConfig, schemaName: string, rel: Relation, columnDetails: Record<string, unknown>) => {
+const createColumnDoc = (config: CompleteConfig, schemaName: string, rel: Relation, columnDetails: ColumnRow) => {
   if (!config.schemaJSDoc) return '';
 
   const
@@ -299,12 +322,26 @@ const createColumnDoc = (config: CompleteConfig, schemaName: string, rel: Relati
       udtName,
       domainName,
       description,
-    } = columnDetails,
-    doc = `/**
-    * **${schemaPrefix}${rel.name}.${column}**${description ? '\n    *\n    * ' + description : ''}
-    * - ${domainName ? `\`${domainName}\` (base type: \`${udtName ?? '(none)'}\`)` : `\`${udtName ?? '(none)'}\``} in database
-    * - ${rel.type === 'mview' ? 'Materialized view column' : isGenerated ? 'Generated column' :
-        `${isNullable ? 'Nullable' : '`NOT NULL`'}, ${hasDefault && defaultValue === null ? `identity column` : hasDefault ? `default: \`${defaultValue}\`` : `no default`}`}
+    } = columnDetails;
+
+  const domainText = domainName !== null
+    ? `\`${domainName}\` (base type: \`${udtName}\`)`
+    : `\`${udtName}\``;
+
+  const descriptionText = description !== null
+    ? `\n    *\n    * ${description}`
+    : '';
+
+  const detailsText = rel.type === 'mview'
+    ? 'Materialized view column'
+    : isGenerated
+      ? 'Generated column'
+      : `${isNullable ? 'Nullable' : '`NOT NULL`'}, ${hasDefault && defaultValue === null ? 'identity column' : hasDefault && defaultValue !== null ? `default: \`${defaultValue}\`` : 'no default'}`;
+
+  const doc = `/**
+    * **${schemaPrefix}${rel.name}.${column}**${descriptionText}
+    * - ${domainText} in database
+    * - ${detailsText}
     */
     `;
   return doc;

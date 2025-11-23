@@ -1,6 +1,6 @@
 
 
-export type NoInfer<T> = [T][T extends any ? 0 : never];  // https://github.com/Microsoft/TypeScript/issues/14829
+export type NoInfer<T> = [T][T extends unknown ? 0 : never];  // https://github.com/Microsoft/TypeScript/issues/14829
 
 /**
  * Basic zero-padding for small, positive integers
@@ -43,25 +43,27 @@ export const mapWithSeparator = <TIn, TSep, TOut>(
 
 /**
  * Map an array of objects to an output array by taking the union of all objects' keys
- * and ensuring that any key not present on any object gets a default value. 
- * 
+ * and ensuring that any key not present on any object gets a default value.
+ *
  * `e.g. [{ x: 1 }, { y: 2 }] => [{ x: 1, y: defaultValue }, { x: defaultValue, y: 2}]`
  * @param objs The array of objects
  * @param defaultValue The default value to assign to missing keys for each object
  */
-export const completeKeysWithDefaultValue = <T extends object>(objs: T[], defaultValue: any): T[] => {
-  const unionKeys = Object.assign({}, ...objs);
-  for (const k in unionKeys) unionKeys[k] = defaultValue;
-  return objs.map(o => ({ ...unionKeys, ...o }));
+export const completeKeysWithDefaultValue = <T extends Record<string, unknown>>(objs: T[], defaultValue: unknown): T[] => {
+  const unionKeys = Object.assign({}, ...objs) as Record<string, unknown>;
+  for (const k in unionKeys) {
+    unionKeys[k] = defaultValue;
+  }
+  return objs.map(o => ({ ...unionKeys, ...o }) as T);
 };
 
 /**
- * Test that a value is a Plain Old JavaScript Object (such as one created by an object 
+ * Test that a value is a Plain Old JavaScript Object (such as one created by an object
  * literal, e.g. `{x: 1, y: 2}`)
- * @param x The value to test 
+ * @param x The value to test
  */
-export const isPOJO = (x: any) =>
+export const isPOJO = (x: unknown): x is Record<string, unknown> =>
   typeof x === 'object' &&
   x !== null &&
-  x.constructor === Object &&
-  x.toString() === '[object Object]';
+  (x as Record<string, unknown>).constructor === Object &&
+  Object.prototype.toString.call(x) === '[object Object]';

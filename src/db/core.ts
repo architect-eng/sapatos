@@ -220,7 +220,7 @@ export function sql<
   RunResult = pg.QueryResult['rows'],
   Constraint = never,
 >(literals: TemplateStringsArray, ...expressions: NoInfer<Interpolations>[]) {
-  return new SQLFragment<RunResult, Constraint>(Array.prototype.slice.apply(literals), expressions as SQL[]);
+  return new SQLFragment<RunResult, Constraint>(Array.prototype.slice.apply(literals) as string[], expressions as SQL[]);
 }
 
 let preparedNameSeq = 0;
@@ -254,7 +254,7 @@ export class SQLFragment<RunResult = pg.QueryResult['rows'], Constraint = never>
     parentTable?: string;
     preparedName?: string;
     noop?: boolean;
-    noopResult?: any;
+    noopResult?: RunResult;
   }): SQLFragment<RunResult, Constraint> {
     const { literals = this.literals, expressions = this.expressions, ...overrideRest } = override ?? {};
     const copy = new SQLFragment<RunResult, Constraint>(literals, expressions);
@@ -272,7 +272,7 @@ export class SQLFragment<RunResult = pg.QueryResult['rows'], Constraint = never>
    * @param name A name for the prepared query. If not specified, it takes the
    * value '_sapatos_prepared_N', where N is an increasing sequence number.
    */
-  prepared = (name = `_sapatos_prepared_${preparedNameSeq++}`) => {
+  prepared = (name = `_sapatos_prepared_${String(preparedNameSeq++)}`) => {
     this.preparedName = name;
     return this;
   };
@@ -284,15 +284,14 @@ export class SQLFragment<RunResult = pg.QueryResult['rows'], Constraint = never>
    * @param force If true, force this query to hit the DB even if it's marked as a no-op
    */
   run = async (queryable: Queryable, force = false): Promise<RunResult> => {
-    const
-      query = this.compile(),
-      { queryListener, resultListener } = getConfig(),
-      txnId = (queryable as Queryable & QueryableWithSapatos)._sapatos?.txnId;
+    const query = this.compile();
+    const config = getConfig();
+    const txnId = (queryable as Queryable & QueryableWithSapatos)._sapatos?.txnId;
 
-    if (queryListener) queryListener(query, txnId);
+    if (config.queryListener) config.queryListener(query, txnId);
 
     let startMs: number | undefined, result;
-    if (resultListener) startMs = timing();
+    if (config.resultListener) startMs = timing();
 
     if (!this.noop || force) {
       const qr = await queryable.query(query);
@@ -302,7 +301,7 @@ export class SQLFragment<RunResult = pg.QueryResult['rows'], Constraint = never>
       result = this.noopResult as RunResult;
     }
 
-    if (resultListener) resultListener(result, txnId, timing() - startMs!, query);
+    if (config.resultListener && startMs !== undefined) config.resultListener(result, txnId, timing() - startMs, query);
     return result;
   };
 
@@ -312,15 +311,17 @@ export class SQLFragment<RunResult = pg.QueryResult['rows'], Constraint = never>
    * only passed when the function calls itself recursively.
    */
   compile = (result: SQLQuery = { text: '', values: [] }, parentTable?: string, currentColumn?: Column) => {
-    if (this.parentTable) parentTable = this.parentTable;
+    if (this.parentTable !== undefined) parentTable = this.parentTable;
 
     if (this.noop) result.text += "/* marked no-op: won't hit DB unless forced -> */ ";
-    result.text += this.literals[0];
+    const firstLiteral = this.literals[0];
+    if (firstLiteral !== undefined) result.text += firstLiteral;
     for (let i = 1, len = this.literals.length; i < len; i++) {
       const expression = this.expressions[i - 1];
-      if (expression === undefined) throw new Error(`Missing expression at index ${i - 1}`);
+      if (expression === undefined) throw new Error(`Missing expression at index ${String(i - 1)}`);
       this.compileExpression(expression, result, parentTable, currentColumn);
-      result.text += this.literals[i];
+      const literal = this.literals[i];
+      if (literal !== undefined) result.text += literal;
     }
 
     if (this.preparedName != null) result.name = this.preparedName;
@@ -329,7 +330,7 @@ export class SQLFragment<RunResult = pg.QueryResult['rows'], Constraint = never>
   };
 
   compileExpression = (expression: SQL, result: SQLQuery = { text: '', values: [] }, parentTable?: string, currentColumn?: Column) => {
-    if (this.parentTable) parentTable = this.parentTable;
+    if (this.parentTable !== undefined) parentTable = this.parentTable;
 
     if (expression instanceof SQLFragment) {
       // another SQL fragment? recursively compile this one
@@ -346,7 +347,10 @@ export class SQLFragment<RunResult = pg.QueryResult['rows'], Constraint = never>
 
     } else if (Array.isArray(expression)) {
       // an array's elements are compiled one by one -- note that an empty array can be used as a non-value
-      for (let i = 0, len = expression.length; i < len; i++) this.compileExpression(expression[i], result, parentTable, currentColumn);
+      for (let i = 0, len = expression.length; i < len; i++) {
+        const elem = expression[i] as SQL;
+        this.compileExpression(elem, result, parentTable, currentColumn);
+      }
 
     } else if (expression instanceof Parameter) {
       // parameters become placeholders, and a corresponding entry in the values array
@@ -378,12 +382,12 @@ export class SQLFragment<RunResult = pg.QueryResult['rows'], Constraint = never>
 
     } else if (expression === self) {
       // alias to the latest column, if applicable
-      if (!currentColumn) throw new Error(`The 'self' column alias has no meaning here`);
+      if (currentColumn === undefined) throw new Error(`The 'self' column alias has no meaning here`);
       this.compileExpression(currentColumn, result);
 
     } else if (expression instanceof ParentColumn) {
       // alias to the parent table (plus optional supplied column name) of a nested query, if applicable
-      if (!parentTable) throw new Error(`The 'parent' table alias has no meaning here`);
+      if (parentTable === undefined) throw new Error(`The 'parent' table alias has no meaning here`);
       this.compileExpression(parentTable, result);
       result.text += '.';
       const columnToUse = expression.value ?? currentColumn;
@@ -466,7 +470,7 @@ export class SQLFragment<RunResult = pg.QueryResult['rows'], Constraint = never>
       }
 
     } else {
-      throw new Error(`Alien object while interpolating SQL: ${expression}`);
+      throw new Error(`Alien object while interpolating SQL: ${String(expression)}`);
     }
   };
 }

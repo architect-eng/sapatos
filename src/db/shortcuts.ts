@@ -33,25 +33,26 @@ import {
 } from './utils';
 
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export type JSONOnlyColsForTable<T extends Table, C extends any[] /* `ColumnForTable<T>[]` gives errors here for reasons I haven't got to the bottom of */> =
   Pick<JSONSelectableForTable<T>, C[number]>;
 
-export interface SQLFragmentMap { [k: string]: SQLFragment<any> }
-export interface SQLFragmentOrColumnMap<T extends Table> { [k: string]: SQLFragment<any> | ColumnForTable<T> }
-export type RunResultForSQLFragment<T extends SQLFragment<any, any>> = T extends SQLFragment<infer RunResult, any> ?
+export interface SQLFragmentMap { [k: string]: SQLFragment<unknown> }
+export interface SQLFragmentOrColumnMap<T extends Table> { [k: string]: SQLFragment<unknown> | ColumnForTable<T> }
+export type RunResultForSQLFragment<T extends SQLFragment<unknown, unknown>> = T extends SQLFragment<infer RunResult, unknown> ?
   (undefined extends RunResult ? NonNullable<RunResult> | null : RunResult) :
   never;
 
 export type LateralResult<L extends SQLFragmentMap> = { [K in keyof L]: RunResultForSQLFragment<L[K]> };
 export type ExtrasResult<T extends Table, E extends SQLFragmentOrColumnMap<T>> = { [K in keyof E]:
-  E[K] extends SQLFragment<any> ? RunResultForSQLFragment<E[K]> : E[K] extends keyof JSONSelectableForTable<T> ? JSONSelectableForTable<T>[E[K]] : never;
+  E[K] extends SQLFragment<unknown> ? RunResultForSQLFragment<E[K]> : E[K] extends keyof JSONSelectableForTable<T> ? JSONSelectableForTable<T>[E[K]] : never;
 };
 
 export type ExtrasOption<T extends Table> = SQLFragmentOrColumnMap<T> | undefined;
 export type ColumnsOption<T extends Table> = readonly ColumnForTable<T>[] | undefined;
 
 type LimitedLateralOption = SQLFragmentMap | undefined;
-type FullLateralOption = LimitedLateralOption | SQLFragment<any>;
+type FullLateralOption = LimitedLateralOption | SQLFragment<unknown>;
 export type LateralOption<
   C extends ColumnsOption<Table>,
   E extends ExtrasOption<Table>,
@@ -67,7 +68,7 @@ type ReturningTypeForTable<T extends Table, C extends ColumnsOption<T>, E extend
   (undefined extends C ? JSONSelectableForTable<T> :
     C extends ColumnForTable<T>[] ? JSONOnlyColsForTable<T, C> :
     never) &
-  (undefined extends E ? {} :
+  (undefined extends E ? NonNullable<unknown> :
     E extends SQLFragmentOrColumnMap<T> ? ExtrasResult<T, E> :
     never);
 
@@ -113,6 +114,7 @@ export const insert: InsertSignatures = function (
   table: Table,
   values: Insertable | Insertable[],
   options?: ReturningOptionsForTable<Table, ColumnsOption<Table>, ExtrasOption<Table>>
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 ): SQLFragment<any> {
 
   let query;
@@ -135,8 +137,8 @@ export const insert: InsertSignatures = function (
   }
 
   query.runResultTransform = Array.isArray(values) ?
-    (qr) => qr.rows.map(r => r.result) :
-    (qr) => qr.rows[0].result;
+    (qr) => qr.rows.map((r: { result: unknown }) => r.result) as never :
+    (qr) => (qr.rows[0] as { result: unknown }).result as never;
 
   return query;
 };
@@ -164,7 +166,7 @@ type UpsertReturnableForTable<
   E extends ExtrasOption<T>,
   RA extends UpsertReportAction | undefined
 > =
-  ReturningTypeForTable<T, C, E> & (undefined extends RA ? UpsertAction : {});
+  ReturningTypeForTable<T, C, E> & (undefined extends RA ? UpsertAction : NonNullable<unknown>);
 
 type UpsertConflictTargetForTable<T extends Table> = Constraint<T> | ColumnForTable<T> | ColumnForTable<T>[];
 type UpdateColumns<T extends Table> = ColumnForTable<T> | ColumnForTable<T>[];
@@ -227,35 +229,45 @@ export const upsert: UpsertSignatures = function (
   values: Insertable | Insertable[],
   conflictTarget: Column | Column[] | Constraint<Table>,
   options?: UpsertOptions<Table, ColumnsOption<Table>, ExtrasOption<Table>, UpdateColumns<Table>, UpsertReportAction>
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 ): SQLFragment<any> {
 
   if (Array.isArray(values) && values.length === 0) return insert(table, values);  // punt a no-op to plain insert
   if (typeof conflictTarget === 'string') conflictTarget = [conflictTarget];  // now either Column[] or Constraint
 
-  let noNullUpdateColumns = options?.noNullUpdateColumns ?? [];
+  let noNullUpdateColumns: Column | Column[] | AllType = options?.noNullUpdateColumns ?? [];
   if (noNullUpdateColumns !== all && !Array.isArray(noNullUpdateColumns)) noNullUpdateColumns = [noNullUpdateColumns];
 
-  let specifiedUpdateColumns = options?.updateColumns;
-  if (specifiedUpdateColumns && !Array.isArray(specifiedUpdateColumns)) specifiedUpdateColumns = [specifiedUpdateColumns];
+  const specifiedUpdateColumns: Column[] | undefined = options?.updateColumns !== undefined ?
+    (Array.isArray(options.updateColumns) ? options.updateColumns : [options.updateColumns]) :
+    undefined;
 
   const
     completedValues = Array.isArray(values) ? completeKeysWithDefaultValue(values, Default) : [values],
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
     firstRow = completedValues[0],
     insertColsSQL = cols(firstRow),
     insertValuesSQL = mapWithSeparator(completedValues, sql`, `, v => sql`(${vals(v)})`),
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
     colNames = Object.keys(firstRow),
     updateValues = options?.updateValues ?? {},
-    updateColumns = [...new Set(  // deduplicate the keys here
-      [...specifiedUpdateColumns as string[] ?? colNames, ...Object.keys(updateValues)]
-    )],
+    // deduplicate the keys here
+    updateColumnsSet = new Set([...(specifiedUpdateColumns ?? colNames), ...Object.keys(updateValues)]),
+    updateColumns = Array.from(updateColumnsSet),
     conflictTargetSQL = Array.isArray(conflictTarget) ?
       sql`(${mapWithSeparator(conflictTarget, sql`, `, c => c)})` :
       sql<string>`ON CONSTRAINT ${conflictTarget.value}`,
     updateColsSQL = mapWithSeparator(updateColumns, sql`, `, c => c),
-    updateValuesSQL = mapWithSeparator(updateColumns, sql`, `, c =>
-      updateValues[c] !== undefined ? updateValues[c] :
-        (noNullUpdateColumns === all || noNullUpdateColumns.includes(c)) ? sql`CASE WHEN EXCLUDED.${c} IS NULL THEN ${table}.${c} ELSE EXCLUDED.${c} END` :
-          sql`EXCLUDED.${c}`),
+    updateValuesSQL = mapWithSeparator(updateColumns, sql`, `, c => {
+      // TypeScript doesn't know that c is a key of updateValues, so we need to use index access
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+      const updateValue = updateValues[c];
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-return
+      if (updateValue !== undefined) return updateValue;
+      return (noNullUpdateColumns === all || (Array.isArray(noNullUpdateColumns) && noNullUpdateColumns.includes(c))) ?
+        sql`CASE WHEN EXCLUDED.${c} IS NULL THEN ${table}.${c} ELSE EXCLUDED.${c} END` :
+        sql`EXCLUDED.${c}`;
+    }),
     returningSQL = SQLForColumnsOfTable(options?.returning, table),
     extrasSQL = SQLForExtras(options?.extras),
     suppressReport = options?.reportAction === 'suppress';
@@ -272,8 +284,8 @@ export const upsert: UpsertSignatures = function (
     query = sql`${insertPart} ${conflictPart} ${conflictActionPart} ${returningPart}`;
 
   query.runResultTransform = Array.isArray(values) ?
-    (qr) => qr.rows.map(r => r.result) :
-    (qr) => qr.rows[0]?.result;
+    (qr) => qr.rows.map((r: { result: unknown }) => r.result) as never :
+    (qr) => (qr.rows[0] as { result: unknown } | undefined)?.result as never;
 
   return query;
 };
@@ -285,7 +297,7 @@ interface UpdateSignatures {
   <T extends Table, C extends ColumnsOption<T>, E extends ExtrasOption<T>>(
     table: T,
     values: UpdatableForTable<T>,
-    where: WhereableForTable<T> | SQLFragment<any>,
+    where: WhereableForTable<T> | SQLFragment<unknown>,
     options?: ReturningOptionsForTable<T, C, E>
   ): SQLFragment<ReturningTypeForTable<T, C, E>[]>;
 }
@@ -299,9 +311,10 @@ interface UpdateSignatures {
 export const update: UpdateSignatures = function (
   table: Table,
   values: Updatable,
-  where: Whereable | SQLFragment<any>,
+  where: Whereable | SQLFragment<unknown>,
   options?: ReturningOptionsForTable<Table, ColumnsOption<Table>, ExtrasOption<Table>>
-): SQLFragment {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+): SQLFragment<any> {
 
   // note: the ROW() constructor below is required in Postgres 10+ if we're updating a single column
   // more info: https://www.postgresql-archive.org/Possible-regression-in-UPDATE-SET-lt-column-list-gt-lt-row-expression-gt-with-just-one-single-column0-td5989074.html
@@ -311,7 +324,8 @@ export const update: UpdateSignatures = function (
     extrasSQL = SQLForExtras(options?.extras),
     query = sql`UPDATE ${table} SET (${cols(values)}) = ROW(${vals(values)}) WHERE ${where} RETURNING ${returningSQL}${extrasSQL} AS result`;
 
-  query.runResultTransform = (qr) => qr.rows.map(r => r.result);
+  query.runResultTransform = (qr) => qr.rows.map((r: { result: unknown }) => r.result) as never;
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-return
   return query;
 };
 
@@ -321,7 +335,7 @@ export const update: UpdateSignatures = function (
 export interface DeleteSignatures {
   <T extends Table, C extends ColumnsOption<T>, E extends ExtrasOption<T>>(
     table: T,
-    where: WhereableForTable<T> | SQLFragment<any>,
+    where: WhereableForTable<T> | SQLFragment<unknown>,
     options?: ReturningOptionsForTable<T, C, E>
   ): SQLFragment<ReturningTypeForTable<T, C, E>[]>;
 }
@@ -333,16 +347,18 @@ export interface DeleteSignatures {
  */
 export const deletes: DeleteSignatures = function (
   table: Table,
-  where: Whereable | SQLFragment<any>,
+  where: Whereable | SQLFragment<unknown>,
   options?: ReturningOptionsForTable<Table, ColumnsOption<Table>, ExtrasOption<Table>>
-): SQLFragment {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+): SQLFragment<any> {
 
   const
     returningSQL = SQLForColumnsOfTable(options?.returning, table),
     extrasSQL = SQLForExtras(options?.extras),
     query = sql`DELETE FROM ${table} WHERE ${where} RETURNING ${returningSQL}${extrasSQL} AS result`;
 
-  query.runResultTransform = (qr) => qr.rows.map(r => r.result);
+  query.runResultTransform = (qr) => qr.rows.map((r: { result: unknown }) => r.result) as never;
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-return
   return query;
 };
 
@@ -353,10 +369,7 @@ type TruncateIdentityOpts = 'CONTINUE IDENTITY' | 'RESTART IDENTITY';
 type TruncateForeignKeyOpts = 'RESTRICT' | 'CASCADE';
 
 interface TruncateSignatures {
-  (table: Table | Table[]): SQLFragment<undefined>;
-  (table: Table | Table[], optId: TruncateIdentityOpts): SQLFragment<undefined>;
-  (table: Table | Table[], optFK: TruncateForeignKeyOpts): SQLFragment<undefined>;
-  (table: Table | Table[], optId: TruncateIdentityOpts, optFK: TruncateForeignKeyOpts): SQLFragment<undefined>;
+  (table: Table | Table[], ...opts: (TruncateIdentityOpts | TruncateForeignKeyOpts)[]): SQLFragment<undefined>;
 }
 
 /**
@@ -367,13 +380,14 @@ interface TruncateSignatures {
  */
 export const truncate: TruncateSignatures = function (
   table: Table | Table[],
-  ...opts: string[]
+  ...opts: (TruncateIdentityOpts | TruncateForeignKeyOpts)[]
 ): SQLFragment<undefined> {
 
-  if (!Array.isArray(table)) table = [table];
+  const tableArray = Array.isArray(table) ? table : [table];
   const
-    tables = mapWithSeparator(table, sql`, `, t => t),
-    query = sql<SQL, undefined>`TRUNCATE ${tables}${raw((opts.length ? ' ' : '') + opts.join(' '))}`;
+    tables = mapWithSeparator(tableArray, sql`, `, t => t),
+    optsString = opts.length > 0 ? ' ' + opts.join(' ') : '',
+    query = sql<SQL, undefined>`TRUNCATE ${tables}${raw(optsString)}`;
 
   return query;
 };
@@ -402,15 +416,15 @@ export interface SelectOptionsForTable<
   E extends ExtrasOption<T>,
   A extends string,
 > {
-  distinct?: boolean | ColumnForTable<T> | ColumnForTable<T>[] | SQLFragment<any>;
+  distinct?: boolean | ColumnForTable<T> | ColumnForTable<T>[] | SQLFragment<unknown>;
   order?: OrderSpecForTable<T> | OrderSpecForTable<T>[];
   limit?: number;
   offset?: number;
   withTies?: boolean;
   columns?: C;
   extras?: E;
-  groupBy?: ColumnForTable<T> | ColumnForTable<T>[] | SQLFragment<any>;
-  having?: WhereableForTable<T> | SQLFragment<any>;
+  groupBy?: ColumnForTable<T> | ColumnForTable<T>[] | SQLFragment<unknown>;
+  having?: WhereableForTable<T> | SQLFragment<unknown>;
   lateral?: L;
   alias?: A;
   lock?: SelectLockingOptions<NoInfer<A>> | SelectLockingOptions<NoInfer<A>>[];
@@ -424,7 +438,7 @@ type SelectReturnTypeForTable<
 > =
   (undefined extends L ? ReturningTypeForTable<T, C, E> :
     L extends SQLFragmentMap ? ReturningTypeForTable<T, C, E> & LateralResult<L> :
-    L extends SQLFragment<any> ? RunResultForSQLFragment<L> :
+    L extends SQLFragment<unknown> ? RunResultForSQLFragment<L> :
     never);
 
 export enum SelectResultMode { Many, One, ExactlyOne, Numeric }
@@ -452,7 +466,7 @@ export interface SelectSignatures {
     M extends SelectResultMode = SelectResultMode.Many
   >(
     table: T,
-    where: WhereableForTable<T> | SQLFragment<any> | AllType,
+    where: WhereableForTable<T> | SQLFragment<unknown> | AllType,
     options?: SelectOptionsForTable<T, C, L, E, A>,
     mode?: M,
     aggregate?: string,
@@ -462,9 +476,12 @@ export interface SelectSignatures {
 export class NotExactlyOneError extends Error {
   // see https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Error
   query: SQLFragment;
-  constructor(query: SQLFragment, ...params: any[]) {
-    super(...params);
-    if (Error.captureStackTrace) Error.captureStackTrace(this, NotExactlyOneError);  // V8 only
+  constructor(query: SQLFragment, message?: string) {
+    super(message);
+    // Error.captureStackTrace is a V8-specific API that may not exist in all environments
+    if (typeof Error.captureStackTrace === 'function') {
+      Error.captureStackTrace(this, NotExactlyOneError);
+    }
     this.name = 'NotExactlyOneError';
     this.query = query;  // custom property
   }
@@ -493,7 +510,8 @@ export class NotExactlyOneError extends Error {
  */
 export const select: SelectSignatures = function (
   table: Table,
-  where: Whereable | SQLFragment<any> | AllType = all,
+  where: Whereable | SQLFragment<unknown> | AllType = all,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   options: SelectOptionsForTable<Table, ColumnsOption<Table>, LateralOption<ColumnsOption<Table>, ExtrasOption<Table>>, ExtrasOption<Table>, any> = {},
   mode: SelectResultMode = SelectResultMode.Many,
   aggregate: string = 'count',
@@ -502,17 +520,17 @@ export const select: SelectSignatures = function (
   const
     limit1 = mode === SelectResultMode.One || mode === SelectResultMode.ExactlyOne,
     allOptions = limit1 ? { ...options, limit: 1 } : options,
-    alias = allOptions.alias || table,
+    alias = (allOptions.alias ?? table) as string,
     { distinct, groupBy, having, lateral, columns, extras } = allOptions,
-    lock = allOptions.lock === undefined || Array.isArray(allOptions.lock) ? allOptions.lock : [allOptions.lock],
-    order = allOptions.order === undefined || Array.isArray(allOptions.order) ? allOptions.order : [allOptions.order],
+    lockArray: SelectLockingOptions<string>[] | undefined = allOptions.lock === undefined || Array.isArray(allOptions.lock) ? allOptions.lock : [allOptions.lock],
+    orderArray: OrderSpecForTable<Table>[] | undefined = allOptions.order === undefined || Array.isArray(allOptions.order) ? allOptions.order : [allOptions.order],
     tableAliasSQL = alias === table ? [] : sql<string>` AS ${alias}`,
-    distinctSQL = !distinct ? [] : sql` DISTINCT${distinct instanceof SQLFragment || typeof distinct === 'string' ? sql` ON (${distinct})` :
+    distinctSQL = distinct === undefined || distinct === false ? [] : sql` DISTINCT${distinct instanceof SQLFragment || typeof distinct === 'string' ? sql` ON (${distinct})` :
       Array.isArray(distinct) ? sql` ON (${cols(distinct)})` : []}`,
     colsSQL = lateral instanceof SQLFragment ? [] :
       mode === SelectResultMode.Numeric ?
-        (columns ? sql`${raw(aggregate)}(${cols(columns)})` : sql`${raw(aggregate)}(*)`) :
-        SQLForColumnsOfTable(columns, alias as Table),
+        (columns !== undefined ? sql`${raw(aggregate)}(${cols(columns)})` : sql`${raw(aggregate)}(*)`) :
+        SQLForColumnsOfTable(columns, alias),
     colsExtraSQL = lateral instanceof SQLFragment || mode === SelectResultMode.Numeric ? [] : SQLForExtras(extras),
     colsLateralSQL = lateral === undefined || mode === SelectResultMode.Numeric ? [] :
       lateral instanceof SQLFragment ? sql`"lateral_passthru".result` :
@@ -520,28 +538,31 @@ export const select: SelectSignatures = function (
           Object.keys(lateral).sort(), sql`, `, k => sql`${param(k)}::text, "lateral_${raw(k)}".result`)})`,
     allColsSQL = sql`${colsSQL}${colsExtraSQL}${colsLateralSQL}`,
     whereSQL = where === all ? [] : sql` WHERE ${where}`,
-    groupBySQL = !groupBy ? [] : sql` GROUP BY ${groupBy instanceof SQLFragment || typeof groupBy === 'string' ? groupBy : cols(groupBy)}`,
-    havingSQL = !having ? [] : sql` HAVING ${having}`,
-    orderSQL = order === undefined ? [] :
-      sql` ORDER BY ${mapWithSeparator(order, sql`, `, o => {  // `as` clause is required when TS not strict
-        if (!['ASC', 'DESC'].includes(o.direction)) throw new Error(`Direction must be ASC/DESC, not '${o.direction}'`);
-        if (o.nulls && !['FIRST', 'LAST'].includes(o.nulls)) throw new Error(`Nulls must be FIRST/LAST/undefined, not '${o.nulls}'`);
-        return sql`${o.by} ${raw(o.direction)}${o.nulls ? sql` NULLS ${raw(o.nulls)}` : []}`;
+    groupBySQL = groupBy === undefined ? [] : sql` GROUP BY ${groupBy instanceof SQLFragment || typeof groupBy === 'string' ? groupBy : cols(groupBy)}`,
+    havingSQL = having === undefined ? [] : sql` HAVING ${having}`,
+    orderSQL = orderArray === undefined ? [] :
+      sql` ORDER BY ${mapWithSeparator(orderArray, sql`, `, o => {
+        const direction = o.direction;
+        const nulls = o.nulls;
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+        const orderBy = o.by;
+        if (!['ASC', 'DESC'].includes(direction)) throw new Error(`Direction must be ASC/DESC, not '${direction}'`);
+        if (nulls !== undefined && !['FIRST', 'LAST'].includes(nulls)) throw new Error(`Nulls must be FIRST/LAST/undefined, not '${nulls}'`);
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+        return sql`${orderBy} ${raw(direction)}${nulls !== undefined ? sql` NULLS ${raw(nulls)}` : []}`;
       })}`,
     limitSQL = allOptions.limit === undefined ? [] :
-      allOptions.withTies ? sql` FETCH FIRST ${param(allOptions.limit)} ROWS WITH TIES` :
+      allOptions.withTies === true ? sql` FETCH FIRST ${param(allOptions.limit)} ROWS WITH TIES` :
         sql` LIMIT ${param(allOptions.limit)}`,  // compatibility with pg pre-10.5; and fewer bytes!
     offsetSQL = allOptions.offset === undefined ? [] : sql` OFFSET ${param(allOptions.offset)}`,  // pg is lax about OFFSET following FETCH, and we exploit that
-    lockSQL = lock === undefined ? [] : (lock as SelectLockingOptions<string>[]).map(lock => {  // `as` clause is required when TS not strict
-      const
-        ofTables = lock.of === undefined || Array.isArray(lock.of) ? lock.of : [lock.of],
-        ofClause = ofTables === undefined ? [] : sql` OF ${mapWithSeparator(ofTables, sql`, `, t => t)}`;  // `as` clause is required when TS not strict
-      return sql` FOR ${raw(lock.for)}${ofClause}${lock.wait ? sql` ${raw(lock.wait)}` : []}`;
+    lockSQL = lockArray === undefined ? [] : lockArray.map(lockOption => {
+      const ofTables = lockOption.of === undefined || Array.isArray(lockOption.of) ? lockOption.of : [lockOption.of];
+      const ofClause = ofTables === undefined ? [] : sql` OF ${mapWithSeparator(ofTables, sql`, `, t => t)}`;
+      const waitClause = lockOption.wait !== undefined ? sql` ${raw(lockOption.wait)}` : [];
+      return sql` FOR ${raw(lockOption.for)}${ofClause}${waitClause}`;
     }),
     lateralSQL = lateral === undefined ? [] :
-      lateral instanceof SQLFragment ? (() => {
-        return sql` LEFT JOIN LATERAL (${lateral.copy({ parentTable: alias })}) AS "lateral_passthru" ON true`;
-      })() :
+      lateral instanceof SQLFragment ? sql` LEFT JOIN LATERAL (${lateral.copy({ parentTable: alias })}) AS "lateral_passthru" ON true` :
         Object.keys(lateral).sort().map(k => {
           /// enables `parent('column')` in subquery's Whereables
           const subQ = lateral[k];
@@ -549,28 +570,33 @@ export const select: SelectSignatures = function (
           return sql` LEFT JOIN LATERAL (${subQ.copy({ parentTable: alias })}) AS "lateral_${raw(k)}" ON true`;
         });
 
+  /* eslint-disable @typescript-eslint/no-explicit-any */
   const
     rowsQuery = sql<SQL, any>`SELECT${distinctSQL} ${allColsSQL} AS result FROM ${table}${tableAliasSQL}${lateralSQL}${whereSQL}${groupBySQL}${havingSQL}${orderSQL}${limitSQL}${offsetSQL}${lockSQL}`,
     query = mode !== SelectResultMode.Many ? rowsQuery :
       // we need the aggregate to sit in a sub-SELECT in order to keep ORDER and LIMIT working as usual
       sql<SQL, any>`SELECT coalesce(jsonb_agg(result), '[]') AS result FROM (${rowsQuery}) AS ${raw(`"sq_${alias}"`)}`;
+  /* eslint-enable @typescript-eslint/no-explicit-any */
 
   query.runResultTransform =
 
     mode === SelectResultMode.Numeric ?
       // note: pg deliberately returns strings for int8 in case 64-bit numbers overflow
       // (see https://github.com/brianc/node-pg-types#use), but we assume our counts aren't that big
-      (qr) => Number(qr.rows[0].result) :
+      (qr) => Number((qr.rows[0] as { result: unknown }).result) :
 
       mode === SelectResultMode.ExactlyOne ?
         (qr) => {
-          const result = qr.rows[0]?.result;
+          const row = qr.rows[0] as { result: unknown } | undefined;
+          const result = row?.result;
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
           if (result === undefined) throw new NotExactlyOneError(query, 'One result expected but none returned (hint: check `.query.compile()` on this Error)');
-          return result;
+          return result as never;
         } :
         // SelectResultMode.One or SelectResultMode.Many
-        (qr) => qr.rows[0]?.result;
+        (qr) => ((qr.rows[0] as { result: unknown } | undefined)?.result as never);
 
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-return
   return query;
 };
 
@@ -586,7 +612,7 @@ export interface SelectOneSignatures {
     A extends string,
   >(
     table: T,
-    where: WhereableForTable<T> | SQLFragment<any> | AllType,
+    where: WhereableForTable<T> | SQLFragment<unknown> | AllType,
     options?: SelectOptionsForTable<T, C, L, E, A>,
   ): SQLFragment<FullSelectReturnTypeForTable<T, C, L, E, SelectResultMode.One>>;
 }
@@ -623,7 +649,7 @@ export interface SelectExactlyOneSignatures {
     A extends string,
   >(
     table: T,
-    where: WhereableForTable<T> | SQLFragment<any> | AllType,
+    where: WhereableForTable<T> | SQLFragment<unknown> | AllType,
     options?: SelectOptionsForTable<T, C, L, E, A>,
   ): SQLFragment<FullSelectReturnTypeForTable<T, C, L, E, SelectResultMode.ExactlyOne>>;
 }
@@ -655,7 +681,7 @@ export interface NumericAggregateSignatures {
     A extends string,
   >(
     table: T,
-    where: WhereableForTable<T> | SQLFragment<any> | AllType,
+    where: WhereableForTable<T> | SQLFragment<unknown> | AllType,
     options?: SelectOptionsForTable<T, C, L, E, A>,
   ): SQLFragment<number>;
 }

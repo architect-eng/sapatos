@@ -5,6 +5,7 @@ import * as path from 'path';
 import type * as pg from 'pg';
 
 
+// eslint-disable-next-line @typescript-eslint/no-empty-object-type
 export interface RequiredConfig {
   // nothing is required any more
 }

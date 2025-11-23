@@ -16,11 +16,11 @@ export const generate = async (suppliedConfig: Config) => {
   const
     config = finaliseConfig(suppliedConfig),
     log = config.progressListener === true ? console.log :
-      config.progressListener || (() => void 0),
+      (config.progressListener !== false ? config.progressListener : (() => void 0)),
     warn = config.warningListener === true ? console.log :
-      config.warningListener || (() => void 0),
+      (config.warningListener !== false ? config.warningListener : (() => void 0)),
     debug = config.debugListener === true ? console.log :
-      config.debugListener || (() => void 0),
+      (config.debugListener !== false ? config.debugListener : (() => void 0)),
 
     { ts, customTypeSourceFiles } = await tsForConfig(config, debug),
 

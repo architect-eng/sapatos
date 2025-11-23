@@ -5,6 +5,12 @@ import * as pg from 'pg';
 
 export type EnumData = { [k: string]: string[] };
 
+interface EnumRow {
+  schema: string;
+  name: string;
+  value: string;
+}
+
 export const enumDataForSchema = async (schemaName: string, queryFn: (q: pg.QueryConfig) => Promise<pg.QueryResult>) => {
   const
     { rows } = await queryFn({
@@ -19,11 +25,11 @@ export const enumDataForSchema = async (schemaName: string, queryFn: (q: pg.Quer
         WHERE n.nspname = $1
         ORDER BY t.typname ASC, e.enumlabel ASC`,
       values: [schemaName],
-    }),
+    }) as pg.QueryResult<EnumRow>,
 
-    enums: EnumData = rows.reduce((memo, row) => {
+    enums: EnumData = rows.reduce<EnumData>((memo, row) => {
       memo[row.name] = memo[row.name] ?? [];
-      memo[row.name].push(row.value);
+      memo[row.name]?.push(row.value);
       return memo;
     }, {});
 

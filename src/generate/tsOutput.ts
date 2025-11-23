@@ -23,7 +23,7 @@ const
   canaryVersion: SchemaVersionCanary['version'] = 104,
   versionCanary = `
 // got a type error on schemaVersionCanary below? update by running \`npx sapatos\`
-export interface schemaVersionCanary extends db.SchemaVersionCanary { version: ${canaryVersion} }
+export interface schemaVersionCanary extends db.SchemaVersionCanary { version: ${String(canaryVersion)} }
 `;
 
 const declareModule = (module: string, declarations: string) => `
@@ -60,13 +60,13 @@ export const tsForConfig = async (config: CompleteConfig, debug: (s: string) => 
     pool = new pg.Pool(db),
     queryFn = async (query: pg.QueryConfig, seq = querySeq++) => {
       try {
-        debug(`>>> query ${seq} >>>\n${query.text.replace(/^\s+|\s+$/mg, '')}\n+ ${JSON.stringify(query.values)}\n`);
+        debug(`>>> query ${String(seq)} >>>\n${query.text.replace(/^\s+|\s+$/mg, '')}\n+ ${JSON.stringify(query.values)}\n`);
         const result = await pool.query(query);
-        debug(`<<< result ${seq} <<<\n${JSON.stringify(result, null, 2)}\n`);
+        debug(`<<< result ${String(seq)} <<<\n${JSON.stringify(result, null, 2)}\n`);
         return result;
 
       } catch (e) {
-        console.log(`*** error ${seq} ***`, e);
+        console.log(`*** error ${String(seq)} ***`, e);
         process.exit(1);
       }
     },

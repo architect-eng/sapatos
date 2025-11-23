@@ -64,7 +64,6 @@ interface ToDate {
  */
 export const toDate: ToDate = function (d: string, tzInterpretation?: TzLocalOrUTC  ) {
   let dateMatch;
-  if (d === null) return null;
   switch (tzInterpretation) {
     case undefined:
       return new Date(d);
@@ -74,7 +73,7 @@ export const toDate: ToDate = function (d: string, tzInterpretation?: TzLocalOrU
       // new Date() interprets 'yyyy-mm-dd' as UTC but 'yyyy-mm-ddT00:00' as local
       if ((dateMatch = d.match(/^([0-9]+)-([0-9]+)-([0-9]+)$/))) {
         const [, y, m, day] = dateMatch;
-        if (!y || !m || !day) throw new Error(`Invalid date format: ${d}`);
+        if (y === undefined || m === undefined || day === undefined) throw new Error(`Invalid date format: ${d}`);
         return new Date(parseInt(y, 10), parseInt(m, 10) - /* cRaZY jS */ 1, parseInt(day, 10));
       }
       return new Date(d);
@@ -107,9 +106,9 @@ interface ToString {
  * and (except for `timestamptz`) whether to express in UTC or local time. For
  * example: `"timestamptz"`, `"timestamp:local"` or `"date:UTC"`.
  */
-export const toString: ToString = function (d: Date | null, stringTypeTz: 'timestamptz' | `${'timestamp' | 'date'}:${TzLocalOrUTC}`): any {
-  if (d === null) return null;
-  if (stringTypeTz === 'timestamptz') return d.toISOString();
+export const toString: ToString = function (d, stringTypeTz) {
+  if (d === null) return null as never;
+  if (stringTypeTz === 'timestamptz') return d.toISOString() as never;
 
   const
     [stringType, tz] = stringTypeTz.split(':'),
@@ -118,7 +117,7 @@ export const toString: ToString = function (d: Date | null, stringTypeTz: 'times
     month = pad((utc ? d.getUTCMonth() : d.getMonth()) + /* cRaZY jS */ 1),
     day = pad(utc ? d.getUTCDate() : d.getDate());
 
-  if (stringType === 'date') return `${year}-${month}-${day}`;
+  if (stringType === 'date') return `${year}-${month}-${day}` as never;
 
   const
     hour = pad(utc ? d.getUTCHours() : d.getHours()),
@@ -126,5 +125,5 @@ export const toString: ToString = function (d: Date | null, stringTypeTz: 'times
     sec = pad(utc ? d.getUTCSeconds() : d.getSeconds()),
     ms = pad(utc ? d.getUTCMilliseconds() : d.getMilliseconds(), 3);
 
-  return `${year}-${month}-${day}T${hour}:${min}:${sec}.${ms}`;
+  return `${year}-${month}-${day}T${hour}:${min}:${sec}.${ms}` as never;
 };

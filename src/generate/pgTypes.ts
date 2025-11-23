@@ -10,8 +10,8 @@ let warnedAboutInt8AndNumeric = false;
 
 const baseTsTypeForBasePgType = (pgType: string, enums: EnumData, context: TypeContext, config: CompleteConfig) => {
   const
-    hasOwnProp = Object.prototype.hasOwnProperty,
-    warn = config.warningListener === true ? console.log : config.warningListener || (() => void 0);
+    hasOwnProp = (obj: object, prop: PropertyKey): boolean => Object.prototype.hasOwnProperty.call(obj, prop),
+    warn = config.warningListener === true ? console.log : (config.warningListener !== false ? config.warningListener : (() => void 0));
 
   function warnAboutLargeNumbers() {
     if (warnedAboutInt8AndNumeric || config.customJSONParsingForLargeNumbers) return;
@@ -81,7 +81,7 @@ const baseTsTypeForBasePgType = (pgType: string, enums: EnumData, context: TypeC
     case 'jsonb':
       return 'db.JSONValue';
     default:
-      if (hasOwnProp.call(enums, pgType)) return pgType;
+      if (hasOwnProp(enums, pgType)) return pgType;
       return null;
   }
 };

@@ -10,7 +10,7 @@ export function enableCustomJSONParsingForLargeNumbers(pg: typeof pgLib) {
 
 const { MAX_SAFE_INTEGER, MIN_SAFE_INTEGER } = Number;
 
-function parseJSONWithLargeNumbersAsStrings(str: string) {
+function parseJSONWithLargeNumbersAsStrings(str: string): unknown {
   return parse(str, undefined, function (_k, str) {
     const n = +str;  // JSON parser ensures this is an ordinary number, parseInt(str, 10) not needed
     if (n === Infinity || n === -Infinity) return str;
@@ -75,7 +75,7 @@ function numericStringToExponential(str: string) {
     }
   }
 
-  result += 'e' + (exp >= 0 ? '+' : '') + exp;
+  result += 'e' + (exp >= 0 ? '+' : '') + String(exp);
   return result;
 }
 

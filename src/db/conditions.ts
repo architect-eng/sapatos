@@ -13,8 +13,7 @@ import {
 } from './core';
 import { mapWithSeparator } from './utils';
 
-type ConditionalParamType = SQLFragment<unknown> | ParentColumn | Parameter | unknown;
-const conditionalParam = (a: ConditionalParamType) => a instanceof SQLFragment || a instanceof ParentColumn || a instanceof Parameter ? a : param(a);
+const conditionalParam = (a: unknown) => a instanceof SQLFragment || a instanceof ParentColumn || a instanceof Parameter ? a : param(a);
 
 export const isNull = sql<SQL, boolean>`${self} IS NULL`;
 export const isNotNull = sql<SQL, boolean>`${self} IS NOT NULL`;

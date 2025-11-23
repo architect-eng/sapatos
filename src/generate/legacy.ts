@@ -31,7 +31,7 @@ export function srcWarning(config: CompleteConfig) {
 
   if (legacySchemaExists || legacySrcExists || legacyCustomTypesExist) {
     const warn = config.warningListener === true ? console.log :
-      config.warningListener || (() => void 0);
+      (config.warningListener !== false ? config.warningListener : (() => void 0));
 
     warn(`
 *** IMPORTANT: SAPATOS NO LONGER COPIES ITS SOURCE TO YOUR SOURCE TREE ***

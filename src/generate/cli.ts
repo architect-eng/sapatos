@@ -8,21 +8,21 @@ import type { Config } from './config';
 import { generate } from ".";
 
 
-const recursivelyInterpolateEnvVars = (obj: any): any =>
+const recursivelyInterpolateEnvVars = (obj: unknown): unknown =>
   // string? => do the interpolation
   typeof obj === 'string' ?
-    obj.replace(/\{\{\s*([^}\s]+)\s*\}\}/g, (_0, name) => {
+    obj.replace(/\{\{\s*([^}\s]+)\s*\}\}/g, (_0, name: string) => {
       const e = process.env[name];
       if (e === undefined) throw new Error(`Environment variable '${name}' is not set`);
       return e;
     }) :
     // array? => recurse over its items
     Array.isArray(obj) ?
-      obj.map(item => recursivelyInterpolateEnvVars(item)) :
+      obj.map((item: unknown) => recursivelyInterpolateEnvVars(item)) :
       // object? => recurse over its values (but don't touch the keys)
       obj !== null && typeof obj === 'object' ?
-        Object.keys(obj).reduce<any>((memo, key) => {
-          memo[key] = recursivelyInterpolateEnvVars(obj[key]);
+        Object.keys(obj).reduce<Record<string, unknown>>((memo, key) => {
+          memo[key] = recursivelyInterpolateEnvVars((obj as Record<string, unknown>)[key]);
           return memo;
         }, {}) :
         // anything else (e.g. number)? => pass right through
@@ -38,17 +38,19 @@ void (async () => {
   try {
     fileConfig = recursivelyInterpolateEnvVars(JSON.parse(configJSON));
 
-  } catch (err: any) {
-    throw new Error(`If present, sapatosconfig.json must be a valid JSON file, and all referenced environment variables must exist: ${err.message}`);
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : String(err);
+    throw new Error(`If present, sapatosconfig.json must be a valid JSON file, and all referenced environment variables must exist: ${message}`);
   }
 
   let argsConfig;
   try {
     argsConfig = recursivelyInterpolateEnvVars(JSON.parse(argsJSON));
 
-  } catch (err: any) {
-    throw new Error(`If present, the argument to Sapatos must be valid JSON, and all referenced environment variables must exist: ${err.message}`);
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : String(err);
+    throw new Error(`If present, the argument to Sapatos must be valid JSON, and all referenced environment variables must exist: ${message}`);
   }
 
-  await generate({ ...fileConfig, ...argsConfig } as Config);
+  await generate({ ...fileConfig as object, ...argsConfig as object } as Config);
 })();
