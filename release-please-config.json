@@ -1,0 +1,31 @@
+{
+  "$schema": "https://raw.githubusercontent.com/googleapis/release-please/main/schemas/config.json",
+  "release-type": "node",
+  "packages": {
+    ".": {
+      "changelog-path": "CHANGELOG.md",
+      "changelog-sections": [
+        { "type": "feat", "section": "✨ Features", "hidden": false },
+        { "type": "fix", "section": "🐛 Bug Fixes", "hidden": false },
+        { "type": "perf", "section": "⚡ Performance Improvements", "hidden": false },
+        { "type": "refactor", "section": "♻️ Code Refactoring", "hidden": false },
+        { "type": "docs", "section": "📚 Documentation", "hidden": false },
+        { "type": "build", "section": "🔧 Build System", "hidden": false },
+        { "type": "ci", "section": "🎡 CI/CD", "hidden": false },
+        { "type": "chore", "section": "Miscellaneous", "hidden": true },
+        { "type": "test", "section": "Tests", "hidden": true },
+        { "type": "style", "section": "Styles", "hidden": true }
+      ],
+      "bump-minor-pre-major": true,
+      "bump-patch-for-minor-pre-major": false,
+      "pull-request-title-pattern": "chore: release ${version} 🚀",
+      "pull-request-header": "## 🎉 New Sapatos Release\n\nThis PR contains the next version with automated changelog generation.\n\n**Review the changelog below and merge when ready to publish!**",
+      "include-v-in-tag": true,
+      "label": "🚀 autorelease: pending",
+      "release-label": "✅ autorelease: published",
+      "extra-files": [
+        "README.md"
+      ]
+    }
+  }
+}

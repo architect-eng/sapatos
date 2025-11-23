@@ -1,0 +1,84 @@
+name: Release
+
+on:
+  push:
+    branches:
+      - master
+  schedule:
+    # Run monthly on the 1st at midnight UTC (safety net for stale releases)
+    - cron: '0 0 1 * *'
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 'Dry run (test without publishing)'
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+  pull-requests: write
+  packages: write
+
+jobs:
+  release-please:
+    runs-on: ubuntu-latest
+    outputs:
+      release_created: ${{ steps.release.outputs.release_created }}
+      tag_name: ${{ steps.release.outputs.tag_name }}
+      version: ${{ steps.release.outputs.major }}.${{ steps.release.outputs.minor }}.${{ steps.release.outputs.patch }}
+    steps:
+      - name: Run Release Please
+        uses: googleapis/release-please-action@v4
+        id: release
+        with:
+          release-type: node
+
+  publish:
+    needs: release-please
+    # Only run if a release was created and not in dry-run mode
+    if: needs.release-please.outputs.release_created && (github.event.inputs.dry_run != 'true')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          registry-url: 'https://npm.pkg.github.com'
+          scope: '@architect-eng'
+
+      - name: Install dependencies
+        run: npm ci
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Run linter
+        run: npm run lint
+
+      - name: Build package
+        run: npm run build
+
+      - name: Publish to GitHub Packages
+        run: npm publish
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Output published info
+        run: |
+          echo "✅ Published ${{ needs.release-please.outputs.tag_name }} to GitHub Packages"
+          echo "📦 Package: @architect-eng/sapatos@${{ needs.release-please.outputs.version }}"
+
+  dry-run-summary:
+    needs: release-please
+    # Only run in dry-run mode when a release would have been created
+    if: needs.release-please.outputs.release_created && (github.event.inputs.dry_run == 'true')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Dry Run Summary
+        run: |
+          echo "🧪 DRY RUN MODE - No packages published"
+          echo "📋 Would have published: ${{ needs.release-please.outputs.tag_name }}"
+          echo "📦 Package: @architect-eng/sapatos@${{ needs.release-please.outputs.version }}"
+          echo "ℹ️  Merge the Release PR to trigger actual publication"
