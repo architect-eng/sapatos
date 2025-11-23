@@ -3,11 +3,11 @@
     "allow": [
       "WebSearch",
 
-      "Bash(npm run lint)",
+      "Bash(npm run lint:*)",
       "Bash(npm run build)",
       "Bash(npm run typecheck)",
-      "Bash(npm run integration-tests)",
-      "Bash(npm run test)",
+      "Bash(npm run integration-tests:*)",
+      "Bash(npm run test:*)",
       "Bash(mise run commit)"
     ],
     "deny": [],
