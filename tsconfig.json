@@ -12,6 +12,14 @@
     "exactOptionalPropertyTypes": true,
     "declaration": true,
     "noUnusedLocals": true,
+    "noUncheckedIndexedAccess": true,
+    "noImplicitOverride": true,
+    "noUnusedParameters": true,
+    "noFallthroughCasesInSwitch": true,
+    "noPropertyAccessFromIndexSignature": true,
+    "allowUnusedLabels": false,
+    "allowUnreachableCode": false,
+    "forceConsistentCasingInFileNames": true,
     "paths": {
       "*": [
         "src/typings/*"
