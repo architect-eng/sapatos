@@ -17,7 +17,7 @@
         { "type": "style", "section": "Styles", "hidden": true }
       ],
       "bump-minor-pre-major": true,
-      "bump-patch-for-minor-pre-major": false,
+      "bump-patch-for-minor-pre-major": true,
       "pull-request-title-pattern": "chore: release ${version} 🚀",
       "pull-request-header": "## 🎉 New Sapatos Release\n\nThis PR contains the next version with automated changelog generation.\n\n**Review the changelog below and merge when ready to publish!**",
       "include-v-in-tag": true,
