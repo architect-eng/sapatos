@@ -6,13 +6,34 @@ Sapatos is a TypeScript-PostgreSQL ORM that generates type-safe database types d
 
 ### Development
 - `npm run lint` - Lint TypeScript source files using ESLint
+- `npm run typecheck` - Type check using tsconfig.build.json and tsconfig.test.json
 - `npm run build` - Compile TypeScript and generate ESM wrappers
 - `npx sapatos` - Generate TypeScript types from database schema
 
+### Testing
+- `npm run test` - Run unit tests with Vitest (excludes integration tests)
+- `npm run test:watch` - Run unit tests in watch mode
+- `npm run test:ui` - Open Vitest UI for interactive testing
+- `npm run test:coverage` - Run tests with coverage reporting
+- `npm run integration-tests` - Run integration tests with PostgreSQL testcontainers
+- `npm run integration-tests:watch` - Run integration tests in watch mode
+
+### Mise Tasks
+[Mise](https://mise.jdx.dev/) is used for task automation and environment management. Available tasks:
+
+- `mise run claude` - Run Claude Code CLI (passes through arguments)
+- `mise run commit` - Pre-commit verification workflow
+  - Runs: lint → typecheck → build → test
+  - Use before committing to ensure code quality
+- `mise run push` - Complete pull-commit-push workflow
+  - Runs: git pull -r → mise run commit → git push
+  - Validates clean working directory before pushing
+
 ### CI/CD
-- No explicit test command (tests not present in package.json)
 - GitHub Actions CI runs on Node 20.x, 22.x, 24.x
-- CI runs: `npm ci`, `npm run lint`, `npm run build`
+- CI workflow steps: `npm ci` → `lint` → `typecheck` → `build` → `test` → `integration-tests`
+- Multiple workflows: master-ci (main pipeline), commitlint (PR validation), release (automated releases)
+- Git hooks via Husky: commit-msg validation using commitlint
 
 ### Configuration
 Create a `sapatosconfig.json` in your project root with database connection info and generation options. Environment variables can be interpolated using `{{ VAR_NAME }}` syntax.
@@ -188,7 +209,74 @@ dist/                     # Compiled JavaScript output
 
 ## Testing
 
-No test suite is currently present in the codebase. CI only runs linting and build validation.
+Sapatos uses **Vitest 4.0.13** as its testing framework with separate configurations for unit and integration tests.
+
+### Test Structure
+
+**Unit Tests** (`*.test.ts`)
+- Fast, isolated tests without database dependencies
+- Mock database types and validate SQL query generation
+- Configuration: `vitest.config.ts`
+- Location: `src/**/*.test.ts` (excludes `*.integration.test.ts`)
+- Example: `src/db/shortcuts.test.ts` (1,135 lines testing all shortcut functions)
+
+**Integration Tests** (`*.integration.test.ts`)
+- End-to-end tests with real PostgreSQL database
+- Uses [@testcontainers/postgresql](https://www.testcontainers.com/) for isolated test environments
+- Configuration: `vitest.integration.config.ts`
+- Location: `src/**/*.integration.test.ts`
+- Timeout: 60s for tests and hooks (allows container startup time)
+- Example: `src/db/shortcuts.integration.test.ts` (370 lines testing actual database operations)
+
+### Test Infrastructure
+
+**Integration Test Helpers** (`src/test-helpers/integration-db.ts`):
+- Spins up PostgreSQL 16 Alpine container via testcontainers
+- Global container reuse across tests for performance
+- Helper functions:
+  - `startTestDatabase()` - Creates/reuses container and connection pool
+  - `stopTestDatabase()` - Cleans up container and connections
+  - `setupTestSchema()` - Creates test tables (users, posts)
+  - `cleanTestSchema()` - Truncates tables between tests
+
+### Running Tests
+
+**Unit tests only**:
+```bash
+npm run test                # Run once
+npm run test:watch          # Watch mode
+npm run test:ui             # Interactive UI mode
+npm run test:coverage       # With coverage reports
+```
+
+**Integration tests**:
+```bash
+npm run integration-tests           # Run once
+npm run integration-tests:watch     # Watch mode
+```
+
+**All tests** (as run in CI):
+```bash
+npm run test && npm run integration-tests
+```
+
+**Via mise**:
+```bash
+mise run commit   # Runs all verifications including tests
+```
+
+### Test Configuration
+
+**TypeScript Config** (`tsconfig.test.json`):
+- Extends base tsconfig
+- Includes both `*.test.ts` and `*.integration.test.ts`
+- Uses ESNext modules with bundler resolution
+- Relaxes some strict settings for test convenience
+
+**Coverage**:
+- Provider: V8
+- Reporters: text, json, html
+- Run with: `npm run test:coverage`
 
 ## Commit Conventions
 
