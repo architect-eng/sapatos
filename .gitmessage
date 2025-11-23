@@ -1,0 +1,57 @@
+# <type>(<scope>): <subject>
+#
+# <body>
+#
+# <footer>
+
+# ────────────────────────────────────────────────────────────────
+# Commit Message Format:
+#   <type>(<scope>): <subject>
+#
+# Types (choose one):
+#   feat:     New feature for users
+#   fix:      Bug fix
+#   docs:     Documentation changes
+#   style:    Code style changes (formatting, semicolons, etc.)
+#   refactor: Code change that neither fixes a bug nor adds a feature
+#   perf:     Performance improvement
+#   test:     Adding or updating tests
+#   build:    Changes to build system or dependencies
+#   ci:       Changes to CI configuration
+#   chore:    Other changes (no src or test files)
+#   revert:   Reverts a previous commit
+#
+# Scope (optional): db, generate, types, shortcuts, transaction, etc.
+#
+# Subject:
+#   - Use imperative mood: "add" not "added" or "adds"
+#   - Don't capitalize first letter
+#   - No period at the end
+#   - Max 72 characters
+#
+# Body (optional):
+#   - Explain WHY the change was made
+#   - Wrap at 72 characters
+#   - Leave blank line after subject
+#
+# Footer (optional):
+#   - Breaking changes: Start with "BREAKING CHANGE:"
+#   - Reference issues: "Fixes #123" or "Closes #456"
+#
+# Examples:
+#   feat(db): add support for lateral joins
+#   fix: correct type inference for nullable columns
+#   docs: update README with installation steps
+#   feat(types)!: remove deprecated Jsonable type
+#
+# Breaking Change Example:
+#   feat!: change default isolation level
+#
+#   BREAKING CHANGE: Default isolation level changed from Read Committed
+#   to Serializable. Set isolationLevel explicitly if you need old behavior.
+#
+#   Fixes #123
+# ────────────────────────────────────────────────────────────────
+# To use this template automatically:
+#   git config commit.template .gitmessage
+# ────────────────────────────────────────────────────────────────

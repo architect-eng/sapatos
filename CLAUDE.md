@@ -190,6 +190,60 @@ dist/                     # Compiled JavaScript output
 
 No test suite is currently present in the codebase. CI only runs linting and build validation.
 
+## Commit Conventions
+
+This project enforces [Conventional Commits](https://www.conventionalcommits.org/) for all commit messages. Commits are validated locally via git hooks (Husky + commitlint) and in CI for pull requests.
+
+### Format
+
+```
+<type>(<optional scope>): <description>
+
+[optional body]
+
+[optional footer(s)]
+```
+
+### Allowed Types
+
+- **feat**: New feature for the user
+- **fix**: Bug fix
+- **docs**: Documentation changes
+- **style**: Code style changes (formatting, missing semicolons, etc.)
+- **refactor**: Code refactoring without changing functionality
+- **perf**: Performance improvements
+- **test**: Adding or updating tests
+- **build**: Changes to build system or dependencies
+- **ci**: Changes to CI configuration
+- **chore**: Other changes that don't modify src or test files
+- **revert**: Reverts a previous commit
+
+### Examples
+
+```bash
+# Feature with scope
+git commit -m "feat(db): add support for lateral joins"
+
+# Bug fix
+git commit -m "fix: correct type inference for nullable columns"
+
+# Breaking change
+git commit -m "feat!: change transaction retry behavior
+
+BREAKING CHANGE: Transaction retry now uses exponential backoff"
+
+# Documentation update
+git commit -m "docs: update configuration examples in README"
+```
+
+### Enforcement
+
+- **Local**: Git hooks block non-compliant commits automatically
+- **CI**: Pull requests validate all commit messages
+- **Bypass** (not recommended): Use `git commit --no-verify` to bypass local hook
+
+See [CONTRIBUTING.md](./CONTRIBUTING.md) for detailed guidelines.
+
 ## References
 
 - Original Zapatos documentation: https://jawj.github.io/zapatos/
