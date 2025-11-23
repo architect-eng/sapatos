@@ -1,0 +1,6 @@
+#!/usr/bin/env bash
+#MISE description="Runs claude code"
+
+set -euo pipefail
+
+npx -y @anthropic-ai/claude-code
