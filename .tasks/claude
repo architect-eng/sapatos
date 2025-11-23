@@ -3,4 +3,4 @@
 
 set -euo pipefail
 
-npx -y @anthropic-ai/claude-code
+npx -y @anthropic-ai/claude-code "$@"
