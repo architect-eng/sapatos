@@ -9,7 +9,7 @@
     "sapatos": "dist/generate/cli.js"
   },
   "scripts": {
-    "lint": "eslint src/db/*.ts src/generate/*.ts",
+    "lint": "eslint --max-warnings 0 src/**/*.ts",
     "build": "npx tsc && npx gen-esm-wrapper db db.mjs && npx gen-esm-wrapper generate generate.mjs",
     "version": "npm run lint && npm run build",
     "postversion": "git push && git push --tags && npm publish",
