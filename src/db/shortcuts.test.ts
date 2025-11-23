@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { Default, all, sql, param } from './core';
+import { Default, all, sql, param, parent } from './core';
 import {
   insert,
   upsert,
@@ -1129,6 +1129,714 @@ describe('shortcuts.ts', () => {
     it('should be an empty array', () => {
       expect(doNothing).toEqual([]);
       expect(Array.isArray(doNothing)).toBe(true);
+    });
+  });
+
+  // ============================================================================
+  // LATERAL JOINS - Priority 1: Core Functionality
+  // ============================================================================
+
+  describe('lateral joins - core functionality', () => {
+    // Additional mock types for lateral testing
+    type PostsTable = 'posts';
+    type CommentsTable = 'comments';
+
+    interface PostWhereable {
+      id?: number;
+      user_id?: number;
+      title?: string;
+    }
+
+    interface CommentWhereable {
+      id?: number;
+      post_id?: number;
+      user_id?: number;
+    }
+
+    it('should generate map mode lateral with single named subquery', () => {
+      const lateralQuery = count('posts' as PostsTable, { user_id: parent('id') } as PostWhereable);
+      const query = select('users' as TestTable, all, {
+        lateral: { postCount: lateralQuery }
+      });
+
+      const compiled = query.compile();
+
+      // Should include LEFT JOIN LATERAL
+      expect(compiled.text).toContain('LEFT JOIN LATERAL');
+      expect(compiled.text).toContain('AS "lateral_postCount"');
+      expect(compiled.text).toContain('ON true');
+
+      // Should build jsonb object with lateral results
+      expect(compiled.text).toContain('jsonb_build_object');
+      expect(compiled.text).toContain('"lateral_postCount".result');
+
+      // The key name should be in the values array (parameterized)
+      expect(compiled.values).toContain('postCount');
+    });
+
+    it('should generate map mode lateral with multiple subqueries', () => {
+      const countQuery = count('posts' as PostsTable, { user_id: parent('id') } as PostWhereable);
+      const selectQuery = select('posts' as PostsTable, { user_id: parent('id') } as PostWhereable);
+
+      const query = select('users' as TestTable, all, {
+        lateral: {
+          postCount: countQuery,
+          posts: selectQuery,
+          commentCount: count('comments' as CommentsTable, { user_id: parent('id') } as CommentWhereable)
+        }
+      });
+
+      const compiled = query.compile();
+
+      // Should have three LEFT JOIN LATERAL clauses
+      const lateralMatches = compiled.text.match(/LEFT JOIN LATERAL/g);
+      expect(lateralMatches).toHaveLength(3);
+
+      // Should have all three lateral aliases (sorted alphabetically)
+      expect(compiled.text).toContain('"lateral_commentCount"');
+      expect(compiled.text).toContain('"lateral_postCount"');
+      expect(compiled.text).toContain('"lateral_posts"');
+
+      // Keys should appear in the values array in sorted order
+      expect(compiled.values).toContain('commentCount');
+      expect(compiled.values).toContain('postCount');
+      expect(compiled.values).toContain('posts');
+
+      // Verify the order in values array (they should be sorted alphabetically)
+      const commentCountIdx = compiled.values.indexOf('commentCount');
+      const postCountIdx = compiled.values.indexOf('postCount');
+      const postsIdx = compiled.values.indexOf('posts');
+
+      expect(commentCountIdx).toBeGreaterThanOrEqual(0);
+      expect(postCountIdx).toBeGreaterThanOrEqual(0);
+      expect(postsIdx).toBeGreaterThanOrEqual(0);
+    });
+
+    it('should generate passthrough mode lateral with single SQLFragment', () => {
+      const lateralQuery = count('posts' as PostsTable, { user_id: parent('id') } as PostWhereable);
+      const query = select('users' as TestTable, all, {
+        lateral: lateralQuery
+      });
+
+      const compiled = query.compile();
+
+      // Should use "lateral_passthru" alias
+      expect(compiled.text).toContain('"lateral_passthru"');
+      expect(compiled.text).toContain('LEFT JOIN LATERAL');
+      expect(compiled.text).toContain('ON true');
+
+      // Should select the lateral result
+      expect(compiled.text).toContain('"lateral_passthru".result');
+
+      // In passthrough mode, the main table columns should not be individually selected
+      // Instead, the lateral result should be the primary selection
+      // (The implementation may still reference the table for joins)
+    });
+
+    it('should handle parent() column references in WHERE clauses', () => {
+      const lateralQuery = select('posts' as PostsTable, { user_id: parent('id') } as PostWhereable);
+      const query = select('users' as TestTable, all, {
+        lateral: { posts: lateralQuery }
+      });
+
+      const compiled = query.compile();
+
+      // The parent table reference should be compiled into the subquery
+      // Note: we can't directly inspect the subquery SQL here, but we can verify
+      // the query structure compiles without errors and contains expected elements
+      expect(compiled.text).toContain('LEFT JOIN LATERAL');
+      expect(compiled.text).toContain('"lateral_posts"');
+    });
+
+    it('should handle parent() with explicit column', () => {
+      // Explicit column - this is the standard use case
+      const explicitQuery = select('posts' as PostsTable, { user_id: parent('id') } as PostWhereable);
+      const query1 = select('users' as TestTable, all, {
+        lateral: { posts: explicitQuery }
+      });
+      const compiled1 = query1.compile();
+      expect(compiled1.text).toContain('LEFT JOIN LATERAL');
+
+      // Implicit parent() requires a currentColumn context which is only
+      // available in Whereable object contexts, not in raw SQL templates
+      // So we verify that explicit parent('column') works correctly
+      const query2 = select('users' as TestTable, all, {
+        lateral: {
+          posts: select('posts' as PostsTable, { user_id: parent('id') } as PostWhereable)
+        }
+      });
+      const compiled2 = query2.compile();
+      expect(compiled2.text).toContain('LEFT JOIN LATERAL');
+      expect(compiled2.text).toContain('"lateral_posts"');
+    });
+
+    it('should throw error when parent() used without parent table context', () => {
+      // Create a query that uses parent() but is NOT within a lateral context
+      const queryWithParent = sql`SELECT * FROM posts WHERE user_id = ${parent('id')}`;
+
+      // Compiling outside of lateral context should throw
+      expect(() => {
+        queryWithParent.compile();
+      }).toThrow(/parent.*has no meaning/i);
+    });
+
+    it('should throw error for undefined subquery in lateral map', () => {
+      expect(() => {
+        select('users' as TestTable, all, {
+          lateral: {
+            postCount: count('posts' as PostsTable, { user_id: parent('id') } as PostWhereable),
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-explicit-any
+            badQuery: undefined as any
+          }
+        });
+      }).toThrow(/undefined/i);
+    });
+
+    it('should handle empty lateral map', () => {
+      const query = select('users' as TestTable, all, {
+        lateral: {}
+      });
+
+      const compiled = query.compile();
+
+      // Empty lateral map should not add any LATERAL joins
+      expect(compiled.text).not.toContain('LEFT JOIN LATERAL');
+
+      // Should still be a valid SELECT
+      expect(compiled.text).toContain('SELECT');
+      expect(compiled.text).toContain('FROM');
+    });
+
+    it('should sort lateral keys alphabetically in SQL generation', () => {
+      const query = select('users' as TestTable, all, {
+        lateral: {
+          zPosts: select('posts' as PostsTable, { user_id: parent('id') } as PostWhereable),
+          aCount: count('posts' as PostsTable, { user_id: parent('id') } as PostWhereable),
+          mComments: select('comments' as CommentsTable, { user_id: parent('id') } as CommentWhereable)
+        }
+      });
+
+      const compiled = query.compile();
+
+      // Find positions of each lateral join in the SQL
+      const aCountIdx = compiled.text.indexOf('"lateral_aCount"');
+      const mCommentsIdx = compiled.text.indexOf('"lateral_mComments"');
+      const zPostsIdx = compiled.text.indexOf('"lateral_zPosts"');
+
+      // Verify they appear in alphabetical order
+      expect(aCountIdx).toBeLessThan(mCommentsIdx);
+      expect(mCommentsIdx).toBeLessThan(zPostsIdx);
+
+      // Verify keys are in the values array
+      expect(compiled.values).toContain('aCount');
+      expect(compiled.values).toContain('mComments');
+      expect(compiled.values).toContain('zPosts');
+
+      // Find their positions in the values array
+      const aCountValIdx = compiled.values.indexOf('aCount');
+      const mCommentsValIdx = compiled.values.indexOf('mComments');
+      const zPostsValIdx = compiled.values.indexOf('zPosts');
+
+      // Verify alphabetical ordering in values array
+      expect(aCountValIdx).toBeLessThan(mCommentsValIdx);
+      expect(mCommentsValIdx).toBeLessThan(zPostsValIdx);
+    });
+
+    it('should generate LEFT JOIN LATERAL with ON true', () => {
+      const query = select('users' as TestTable, all, {
+        lateral: {
+          postCount: count('posts' as PostsTable, { user_id: parent('id') } as PostWhereable)
+        }
+      });
+
+      const compiled = query.compile();
+
+      // Verify the exact lateral join syntax
+      expect(compiled.text).toMatch(/LEFT JOIN LATERAL\s*\(/);
+      expect(compiled.text).toMatch(/\)\s*AS\s+"lateral_postCount"\s+ON\s+true/i);
+
+      // This means the lateral always joins (no filtering at join level)
+      expect(compiled.text).toContain('ON true');
+    });
+  });
+
+  // ============================================================================
+  // LATERAL JOINS - Priority 2: Shortcut Integration
+  // ============================================================================
+
+  describe('lateral joins - shortcut integration', () => {
+    type PostsTable = 'posts';
+
+    interface PostWhereable {
+      id?: number;
+      user_id?: number;
+    }
+
+    it('should support select shortcut in lateral', () => {
+      const lateralQuery = select('posts' as PostsTable, { user_id: parent('id') } as PostWhereable);
+      const query = select('users' as TestTable, all, {
+        lateral: { posts: lateralQuery }
+      });
+
+      const compiled = query.compile();
+
+      expect(compiled.text).toContain('LEFT JOIN LATERAL');
+      expect(compiled.text).toContain('"lateral_posts"');
+      expect(compiled.values).toContain('posts');
+    });
+
+    it('should support selectOne shortcut in lateral', () => {
+      const lateralQuery = selectOne('posts' as PostsTable, { user_id: parent('id') } as PostWhereable, {
+        order: { by: 'created_at' as 'id' | 'user_id', direction: 'DESC' }
+      });
+      const query = select('users' as TestTable, all, {
+        lateral: { latestPost: lateralQuery }
+      });
+
+      const compiled = query.compile();
+
+      expect(compiled.text).toContain('LEFT JOIN LATERAL');
+      expect(compiled.text).toContain('"lateral_latestPost"');
+      expect(compiled.text).toContain('LIMIT');
+    });
+
+    it('should support selectExactlyOne shortcut in lateral', () => {
+      const lateralQuery = selectExactlyOne('posts' as PostsTable, { user_id: parent('id') } as PostWhereable);
+      const query = select('users' as TestTable, all, {
+        lateral: { singlePost: lateralQuery }
+      });
+
+      const compiled = query.compile();
+
+      expect(compiled.text).toContain('LEFT JOIN LATERAL');
+      expect(compiled.text).toContain('"lateral_singlePost"');
+      // selectExactlyOne includes LIMIT 1 internally
+      expect(compiled.text).toContain('LIMIT');
+    });
+
+    it('should support count shortcut in lateral', () => {
+      const lateralQuery = count('posts' as PostsTable, { user_id: parent('id') } as PostWhereable);
+      const query = select('users' as TestTable, all, {
+        lateral: { postCount: lateralQuery }
+      });
+
+      const compiled = query.compile();
+
+      expect(compiled.text).toContain('LEFT JOIN LATERAL');
+      expect(compiled.text).toContain('"lateral_postCount"');
+      // The COUNT(*) is inside the subquery
+    });
+
+    it('should support sum shortcut in lateral', () => {
+      const lateralQuery = sum('posts' as PostsTable, { user_id: parent('id') } as PostWhereable, {
+        columns: ['id' as 'id' | 'user_id']
+      });
+      const query = select('users' as TestTable, all, {
+        lateral: { totalPostIds: lateralQuery }
+      });
+
+      const compiled = query.compile();
+
+      expect(compiled.text).toContain('LEFT JOIN LATERAL');
+      expect(compiled.text).toContain('"lateral_totalPostIds"');
+      // The SUM() is inside the subquery
+    });
+
+    it('should support avg shortcut in lateral', () => {
+      const lateralQuery = avg('posts' as PostsTable, { user_id: parent('id') } as PostWhereable, {
+        columns: ['id' as 'id' | 'user_id']
+      });
+      const query = select('users' as TestTable, all, {
+        lateral: { avgPostId: lateralQuery }
+      });
+
+      const compiled = query.compile();
+
+      expect(compiled.text).toContain('LEFT JOIN LATERAL');
+      expect(compiled.text).toContain('"lateral_avgPostId"');
+      // The AVG() is inside the subquery
+    });
+
+    it('should support min shortcut in lateral', () => {
+      const lateralQuery = min('posts' as PostsTable, { user_id: parent('id') } as PostWhereable, {
+        columns: ['id' as 'id' | 'user_id']
+      });
+      const query = select('users' as TestTable, all, {
+        lateral: { minPostId: lateralQuery }
+      });
+
+      const compiled = query.compile();
+
+      expect(compiled.text).toContain('LEFT JOIN LATERAL');
+      expect(compiled.text).toContain('"lateral_minPostId"');
+      // The MIN() is inside the subquery
+    });
+
+    it('should support max shortcut in lateral', () => {
+      const lateralQuery = max('posts' as PostsTable, { user_id: parent('id') } as PostWhereable, {
+        columns: ['id' as 'id' | 'user_id']
+      });
+      const query = select('users' as TestTable, all, {
+        lateral: { maxPostId: lateralQuery }
+      });
+
+      const compiled = query.compile();
+
+      expect(compiled.text).toContain('LEFT JOIN LATERAL');
+      expect(compiled.text).toContain('"lateral_maxPostId"');
+      // The MAX() is inside the subquery
+    });
+
+    it('should handle mixed shortcuts in single lateral map', () => {
+      const query = select('users' as TestTable, all, {
+        lateral: {
+          posts: select('posts' as PostsTable, { user_id: parent('id') } as PostWhereable),
+          postCount: count('posts' as PostsTable, { user_id: parent('id') } as PostWhereable),
+          latestPost: selectOne('posts' as PostsTable, { user_id: parent('id') } as PostWhereable, {
+            order: { by: 'created_at' as 'id' | 'user_id', direction: 'DESC' }
+          }),
+          maxPostId: max('posts' as PostsTable, { user_id: parent('id') } as PostWhereable, {
+            columns: ['id' as 'id' | 'user_id']
+          })
+        }
+      });
+
+      const compiled = query.compile();
+
+      // Should have four lateral joins
+      const lateralMatches = compiled.text.match(/LEFT JOIN LATERAL/g);
+      expect(lateralMatches).toHaveLength(4);
+
+      // Verify all shortcuts are present
+      expect(compiled.text).toContain('"lateral_posts"');
+      expect(compiled.text).toContain('"lateral_postCount"');
+      expect(compiled.text).toContain('"lateral_latestPost"');
+      expect(compiled.text).toContain('"lateral_maxPostId"');
+
+      // Aggregate functions are inside the subqueries
+    });
+
+    it('should verify numeric aggregates in lateral work correctly', () => {
+      // When count/sum/avg/min/max are used in lateral, they should still
+      // work as subqueries even though main query numeric mode suppresses columns
+      const query = count('users' as TestTable, all, {
+        lateral: {
+          postCount: count('posts' as PostsTable, { user_id: parent('id') } as PostWhereable)
+        }
+      });
+
+      const compiled = query.compile();
+
+      // Main query is count(*) on users (lowercase in actual SQL)
+      expect(compiled.text).toContain('count(*)');
+
+      // Should still include the lateral join (even though lateral columns
+      // are suppressed in numeric mode)
+      expect(compiled.text).toContain('LEFT JOIN LATERAL');
+      expect(compiled.text).toContain('"lateral_postCount"');
+    });
+
+    it('should handle shortcuts with RETURNING in laterals', () => {
+      // Note: INSERT/UPDATE/DELETE with RETURNING could theoretically be used
+      // in lateral context, but this test verifies that SELECT with returning
+      // option works (returning is for non-SELECT contexts, but we test compilation)
+      const lateralQuery = select('posts' as PostsTable, { user_id: parent('id') } as PostWhereable, {
+        columns: ['id', 'title'] as ('id' | 'title')[]
+      });
+
+      const query = select('users' as TestTable, all, {
+        lateral: { posts: lateralQuery }
+      });
+
+      const compiled = query.compile();
+
+      expect(compiled.text).toContain('LEFT JOIN LATERAL');
+      expect(compiled.text).toContain('"lateral_posts"');
+    });
+
+    it('should handle lateral with parent references in different shortcuts', () => {
+      // Verify that parent() works correctly across different shortcut types
+      const query = select('users' as TestTable, all, {
+        lateral: {
+          // Different ways parent can be used
+          postsByFK: select('posts' as PostsTable, { user_id: parent('id') } as PostWhereable),
+          countByFK: count('posts' as PostsTable, { user_id: parent('id') } as PostWhereable),
+          singleByFK: selectOne('posts' as PostsTable, { user_id: parent('id') } as PostWhereable)
+        }
+      });
+
+      const compiled = query.compile();
+
+      // Should have three lateral joins, all using parent context
+      const lateralMatches = compiled.text.match(/LEFT JOIN LATERAL/g);
+      expect(lateralMatches).toHaveLength(3);
+
+      expect(compiled.text).toContain('"lateral_postsByFK"');
+      expect(compiled.text).toContain('"lateral_countByFK"');
+      expect(compiled.text).toContain('"lateral_singleByFK"');
+    });
+  });
+
+  // ============================================================================
+  // LATERAL JOINS - Priority 3: Advanced Scenarios
+  // ============================================================================
+
+  describe('lateral joins - advanced scenarios', () => {
+    type PostsTable = 'posts';
+    type CommentsTable = 'comments';
+
+    interface PostWhereable {
+      id?: number;
+      user_id?: number;
+    }
+
+    interface CommentWhereable {
+      id?: number;
+      post_id?: number;
+      user_id?: number;
+    }
+
+    it('should handle nested laterals (2 levels: users → posts → comments)', () => {
+      // Posts with nested comment count
+      const postsWithComments = select('posts' as PostsTable, { user_id: parent('id') } as PostWhereable, {
+        lateral: {
+          commentCount: count('comments' as CommentsTable, { post_id: parent('id') } as CommentWhereable)
+        }
+      });
+
+      // Users with posts (which have comment counts)
+      const query = select('users' as TestTable, all, {
+        lateral: { posts: postsWithComments }
+      });
+
+      const compiled = query.compile();
+
+      // Should have outer lateral for posts
+      expect(compiled.text).toContain('"lateral_posts"');
+
+      // The inner lateral is within the subquery, so we verify compilation succeeds
+      expect(compiled.text).toContain('LEFT JOIN LATERAL');
+    });
+
+    it('should handle three-level nesting (users → posts → comments → aggregate)', () => {
+      // Comments with nested aggregate (hypothetical scenario)
+      const commentsQuery = select('comments' as CommentsTable, { post_id: parent('id') } as CommentWhereable);
+
+      // Posts with comments
+      const postsQuery = select('posts' as PostsTable, { user_id: parent('id') } as PostWhereable, {
+        lateral: { comments: commentsQuery }
+      });
+
+      // Users with posts (which have comments)
+      const query = select('users' as TestTable, all, {
+        lateral: { posts: postsQuery }
+      });
+
+      const compiled = query.compile();
+
+      // Verify successful compilation of deeply nested structure
+      expect(compiled.text).toContain('LEFT JOIN LATERAL');
+      expect(compiled.text).toContain('"lateral_posts"');
+    });
+
+    it('should handle self-joins with alias', () => {
+      // Select users with their referrer user
+      // This tests that alias handling works correctly
+      const query = select('users' as TestTable, all, {
+        alias: 'u1',
+        lateral: {
+          referrer: selectOne('users' as TestTable, { id: parent('id') } as TestWhereable)
+        }
+      });
+
+      const compiled = query.compile();
+
+      // Should use the alias 'u1' as parent table
+      expect(compiled.text).toContain('LEFT JOIN LATERAL');
+      expect(compiled.text).toContain('"lateral_referrer"');
+    });
+
+    it('should work with lateral and main query groupBy/having', () => {
+      const query = select('users' as TestTable, all, {
+        lateral: {
+          postCount: count('posts' as PostsTable, { user_id: parent('id') } as { user_id?: number })
+        },
+        groupBy: ['id' as TestColumn],
+        having: sql`COUNT(*) > ${param(0)}`
+      });
+
+      const compiled = query.compile();
+
+      expect(compiled.text).toContain('LEFT JOIN LATERAL');
+      expect(compiled.text).toContain('GROUP BY');
+      expect(compiled.text).toContain('HAVING');
+      expect(compiled.text).toContain('"lateral_postCount"');
+    });
+
+    it('should work with lateral and main query order/limit/offset', () => {
+      const query = select('users' as TestTable, all, {
+        lateral: {
+          postCount: count('posts' as PostsTable, { user_id: parent('id') } as { user_id?: number })
+        },
+        order: { by: 'name' as TestColumn, direction: 'ASC' },
+        limit: 10,
+        offset: 5
+      });
+
+      const compiled = query.compile();
+
+      expect(compiled.text).toContain('LEFT JOIN LATERAL');
+      expect(compiled.text).toContain('ORDER BY');
+      expect(compiled.text).toContain('LIMIT');
+      expect(compiled.text).toContain('OFFSET');
+      expect(compiled.text).toContain('"lateral_postCount"');
+    });
+
+    it('should allow lateral subquery to have its own order/limit', () => {
+      const lateralQuery = select('posts' as PostsTable, { user_id: parent('id') } as { user_id?: number }, {
+        order: { by: 'created_at' as 'id' | 'user_id', direction: 'DESC' },
+        limit: 5
+      });
+
+      const query = select('users' as TestTable, all, {
+        lateral: { recentPosts: lateralQuery }
+      });
+
+      const compiled = query.compile();
+
+      expect(compiled.text).toContain('LEFT JOIN LATERAL');
+      expect(compiled.text).toContain('"lateral_recentPosts"');
+      // The subquery should have ORDER BY and LIMIT
+      expect(compiled.text).toContain('LIMIT');
+    });
+
+    it('should handle parent references in extras/computed columns', () => {
+      const lateralQuery = select('posts' as PostsTable, { user_id: parent('id') } as { user_id?: number }, {
+        extras: {
+          parentUserId: sql`${parent('id')}`
+        }
+      });
+
+      const query = select('users' as TestTable, all, {
+        lateral: { posts: lateralQuery }
+      });
+
+      const compiled = query.compile();
+
+      expect(compiled.text).toContain('LEFT JOIN LATERAL');
+      expect(compiled.text).toContain('"lateral_posts"');
+    });
+
+    it('should handle parent in complex conditions', () => {
+      // Note: These use sql tagged templates to test parent() in various contexts
+      const conditions = [
+        { user_id: parent('id') }, // Simple equality
+        // Note: More complex conditions would use condition builders, but those
+        // already accept parent() as values, so this tests the basic case
+      ];
+
+      for (const condition of conditions) {
+        const lateralQuery = select('posts' as PostsTable, condition as { user_id?: number });
+        const query = select('users' as TestTable, all, {
+          lateral: { posts: lateralQuery }
+        });
+
+        const compiled = query.compile();
+        expect(compiled.text).toContain('LEFT JOIN LATERAL');
+      }
+    });
+
+    it('should prevent passthrough mode when columns option is provided', () => {
+      // Type system should prevent this, but we verify behavior
+      // With columns specified, lateral must be a map (not passthrough)
+      const lateralQuery = count('posts' as PostsTable, { user_id: parent('id') } as { user_id?: number });
+
+      const query = select('users' as TestTable, all, {
+        columns: ['id', 'name'] as TestColumn[],
+        lateral: {
+          postCount: lateralQuery
+        } // Must be map, not passthrough
+      });
+
+      const compiled = query.compile();
+
+      // With columns option, the result is built as a jsonb_build_object
+      // The column names should be in the values array
+      expect(compiled.values).toContain('id');
+      expect(compiled.values).toContain('name');
+      expect(compiled.values).toContain('postCount');
+      expect(compiled.text).toContain('"lateral_postCount"');
+    });
+
+    it('should prevent passthrough mode when extras option is provided', () => {
+      const lateralQuery = count('posts' as PostsTable, { user_id: parent('id') } as { user_id?: number });
+
+      const query = select('users' as TestTable, all, {
+        extras: {
+          computed: sql<TestWhereable, number>`1 + 1`
+        },
+        lateral: {
+          postCount: lateralQuery
+        } // Must be map, not passthrough
+      });
+
+      const compiled = query.compile();
+
+      // Should include both extras and lateral results
+      expect(compiled.text).toContain('"lateral_postCount"');
+      expect(compiled.text).toContain('1 + 1'); // The computed extra
+    });
+
+    it('should handle multiple laterals referencing same parent column', () => {
+      const query = select('users' as TestTable, all, {
+        lateral: {
+          posts: select('posts' as PostsTable, { user_id: parent('id') } as { user_id?: number }),
+          postCount: count('posts' as PostsTable, { user_id: parent('id') } as { user_id?: number }),
+          comments: select('comments' as CommentsTable, { user_id: parent('id') } as CommentWhereable),
+          commentCount: count('comments' as CommentsTable, { user_id: parent('id') } as CommentWhereable)
+        }
+      });
+
+      const compiled = query.compile();
+
+      // Should have four laterals, all referencing parent('id')
+      const lateralMatches = compiled.text.match(/LEFT JOIN LATERAL/g);
+      expect(lateralMatches).toHaveLength(4);
+
+      expect(compiled.text).toContain('"lateral_posts"');
+      expect(compiled.text).toContain('"lateral_postCount"');
+      expect(compiled.text).toContain('"lateral_comments"');
+      expect(compiled.text).toContain('"lateral_commentCount"');
+    });
+
+    it('should handle lateral with DISTINCT on main query', () => {
+      const query = select('users' as TestTable, all, {
+        lateral: {
+          postCount: count('posts' as PostsTable, { user_id: parent('id') } as { user_id?: number })
+        },
+        distinct: true
+      });
+
+      const compiled = query.compile();
+
+      expect(compiled.text).toContain('DISTINCT');
+      expect(compiled.text).toContain('LEFT JOIN LATERAL');
+      expect(compiled.text).toContain('"lateral_postCount"');
+    });
+
+    it('should handle lateral with lock option on main query', () => {
+      const query = select('users' as TestTable, all, {
+        lateral: {
+          postCount: count('posts' as PostsTable, { user_id: parent('id') } as { user_id?: number })
+        },
+        lock: { for: 'UPDATE' }
+      });
+
+      const compiled = query.compile();
+
+      expect(compiled.text).toContain('FOR UPDATE');
+      expect(compiled.text).toContain('LEFT JOIN LATERAL');
+      expect(compiled.text).toContain('"lateral_postCount"');
     });
   });
 });

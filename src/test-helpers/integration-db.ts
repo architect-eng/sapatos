@@ -81,11 +81,66 @@ export async function setupTestSchema(pool: Pool): Promise<void> {
       created_at TIMESTAMPTZ DEFAULT NOW()
     );
   `);
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS comments (
+      id SERIAL PRIMARY KEY,
+      post_id INTEGER REFERENCES posts(id) ON DELETE CASCADE,
+      user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+      content TEXT NOT NULL,
+      created_at TIMESTAMPTZ DEFAULT NOW()
+    );
+  `);
 }
 
 /**
  * Clean all data from test tables
  */
 export async function cleanTestSchema(pool: Pool): Promise<void> {
-  await pool.query('TRUNCATE users, posts RESTART IDENTITY CASCADE;');
+  await pool.query('TRUNCATE users, posts, comments RESTART IDENTITY CASCADE;');
+}
+
+/**
+ * Helper: Insert a user and return the ID
+ */
+export async function insertUser(
+  pool: Pool,
+  data: { name: string; email: string; age?: number }
+): Promise<number> {
+  const result = await pool.query<{ id: number }>(
+    'INSERT INTO users (name, email, age) VALUES ($1, $2, $3) RETURNING id',
+    [data.name, data.email, data.age ?? null]
+  );
+  if (!result.rows[0]) throw new Error('Failed to insert user');
+  return result.rows[0].id;
+}
+
+/**
+ * Helper: Insert a post and return the ID
+ */
+export async function insertPost(
+  pool: Pool,
+  data: { user_id: number; title: string; content?: string; published?: boolean }
+): Promise<number> {
+  const result = await pool.query<{ id: number }>(
+    'INSERT INTO posts (user_id, title, content, published) VALUES ($1, $2, $3, $4) RETURNING id',
+    [data.user_id, data.title, data.content ?? null, data.published ?? false]
+  );
+  if (!result.rows[0]) throw new Error('Failed to insert post');
+  return result.rows[0].id;
+}
+
+/**
+ * Helper: Insert a comment and return the ID
+ */
+export async function insertComment(
+  pool: Pool,
+  data: { post_id: number; user_id: number; content: string }
+): Promise<number> {
+  const result = await pool.query<{ id: number }>(
+    'INSERT INTO comments (post_id, user_id, content) VALUES ($1, $2, $3) RETURNING id',
+    [data.post_id, data.user_id, data.content]
+  );
+  if (!result.rows[0]) throw new Error('Failed to insert comment');
+  return result.rows[0].id;
 }
