@@ -1,2 +1,7 @@
 [tools]
 node = "lts"
+
+[task_config]
+includes = [
+    ".tasks/"
+]

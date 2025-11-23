@@ -1,0 +1,6 @@
+#!/usr/bin/env bash
+#MISE description="Runs all the verification steps necessary before committing"
+
+npm run lint
+npm run build
+npm run test
