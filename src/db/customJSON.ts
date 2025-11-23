@@ -11,7 +11,7 @@ export function enableCustomJSONParsingForLargeNumbers(pg: typeof pgLib) {
 const { MAX_SAFE_INTEGER, MIN_SAFE_INTEGER } = Number;
 
 function parseJSONWithLargeNumbersAsStrings(str: string) {
-  return parse(str, undefined, function (k, str) {
+  return parse(str, undefined, function (_k, str) {
     const n = +str;  // JSON parser ensures this is an ordinary number, parseInt(str, 10) not needed
     if (n === Infinity || n === -Infinity) return str;
     if ((n < MIN_SAFE_INTEGER || n > MAX_SAFE_INTEGER) && str.indexOf('.') === -1) return str;
@@ -38,30 +38,39 @@ function numericStringToExponential(str: string) {
     /* discard e + sign + exponent digits */, srcSignExp, srcDigitsExp,
   ] = match;
 
-  let exp = srcDigitsExp ? (srcSignExp === '-' ? -srcDigitsExp : +srcDigitsExp) : 0;
-  let result = srcMinus;
+  // Provide defaults for potentially undefined capture groups
+  const minus = srcMinus ?? '';
+  const digitsPreDp = srcDigitsPreDp ?? '';
+  const trailingZeroesPreDp = srcTrailingZeroesPreDp ?? '';
+  const leadingZeroesPostDp = srcLeadingZeroesPostDp ?? '';
+  const digitsPostDp = srcDigitsPostDp ?? '';
+  const signExp = srcSignExp ?? '';
+  const digitsExp = srcDigitsExp ?? '';
 
-  if (srcDigitsPreDp === '0') {
+  let exp = digitsExp ? (signExp === '-' ? -Number(digitsExp) : +digitsExp) : 0;
+  let result = minus;
+
+  if (digitsPreDp === '0') {
     // n === 0
-    if (!srcDigitsPostDp) return '0e+0';
+    if (!digitsPostDp) return '0e+0';
 
     // n !== 0, -1 < n < 1
-    exp -= srcLeadingZeroesPostDp.length + 1;
-    result += srcDigitsPostDp.charAt(0);
+    exp -= leadingZeroesPostDp.length + 1;
+    result += digitsPostDp.charAt(0);
 
-    if (srcDigitsPostDp.length > 1) result += '.' + srcDigitsPostDp.slice(1);
+    if (digitsPostDp.length > 1) result += '.' + digitsPostDp.slice(1);
 
   } else {
     // n <= -1, n >= 1
-    exp += srcTrailingZeroesPreDp.length + srcDigitsPreDp.length - 1;
-    result += srcDigitsPreDp.charAt(0);
+    exp += trailingZeroesPreDp.length + digitsPreDp.length - 1;
+    result += digitsPreDp.charAt(0);
 
-    if (srcDigitsPreDp.length > 1 || srcDigitsPostDp) {
-      result += '.' + srcDigitsPreDp.slice(1);
-      if (srcDigitsPostDp) {
-        result += srcTrailingZeroesPreDp;
-        if (srcLeadingZeroesPostDp) result += srcLeadingZeroesPostDp;
-        result += srcDigitsPostDp;
+    if (digitsPreDp.length > 1 || digitsPostDp) {
+      result += '.' + digitsPreDp.slice(1);
+      if (digitsPostDp) {
+        result += trailingZeroesPreDp;
+        if (leadingZeroesPostDp) result += leadingZeroesPostDp;
+        result += digitsPostDp;
       }
     }
   }

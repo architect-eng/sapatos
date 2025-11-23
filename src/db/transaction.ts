@@ -64,7 +64,10 @@ function typeofQueryable(queryable: Queryable) {
   // `_connected`, which is defined (as a boolean) on clients (pure JS and
   // native) but not on pools
 
-  if ((queryable as any)._connected === undefined) return 'pool';
+  interface QueryableWithConnected {
+    _connected?: boolean;
+  }
+  if ((queryable as QueryableWithConnected)._connected === undefined) return 'pool';
   return 'client';
 }
 
@@ -110,7 +113,7 @@ export async function transaction<T, M extends IsolationLevel>(
   try {
     for (let attempt = 1; ; attempt++) {
       try {
-        if (attempt > 1 && transactionListener) transactionListener(`Retrying transaction, attempt ${attempt} of ${maxAttempts}`, txnId);
+        if (attempt > 1 && transactionListener) transactionListener(`Retrying transaction, attempt ${String(attempt)} of ${String(maxAttempts)}`, txnId);
 
         await sql`START TRANSACTION ISOLATION LEVEL ${raw(isolationLevel)}`.run(txnClient);
         const result = await callback(txnClient as TxnClient<IsolationSatisfying<M>>);
@@ -118,7 +121,7 @@ export async function transaction<T, M extends IsolationLevel>(
 
         return result;
 
-      } catch (err: any) {
+      } catch (err: unknown) {
         await sql`ROLLBACK`.run(txnClient);
 
         // on trapping the following two rollback error codes, see:
@@ -126,14 +129,17 @@ export async function transaction<T, M extends IsolationLevel>(
         // this is also a good read:
         // https://www.enterprisedb.com/blog/serializable-postgresql-11-and-beyond
 
-        if (isDatabaseError(err, "TransactionRollback_SerializationFailure", "TransactionRollback_DeadlockDetected")) {
+        const errorWithCode = err as { code?: string };
+        if (isDatabaseError(errorWithCode, "TransactionRollback_SerializationFailure", "TransactionRollback_DeadlockDetected")) {
           if (attempt < maxAttempts) {
             const delayBeforeRetry = Math.round(minMs + (maxMs - minMs) * Math.random());
-            if (transactionListener) transactionListener(`Transaction rollback (code ${err.code}) on attempt ${attempt} of ${maxAttempts}, retrying in ${delayBeforeRetry}ms`, txnId);
+            const errorCode = (err as { code?: string }).code ?? 'unknown';
+            if (transactionListener) transactionListener(`Transaction rollback (code ${errorCode}) on attempt ${String(attempt)} of ${String(maxAttempts)}, retrying in ${String(delayBeforeRetry)}ms`, txnId);
             await wait(delayBeforeRetry);
 
           } else {
-            if (transactionListener) transactionListener(`Transaction rollback (code ${err.code}) on attempt ${attempt} of ${maxAttempts}, giving up`, txnId);
+            const errorCode = (err as { code?: string }).code ?? 'unknown';
+            if (transactionListener) transactionListener(`Transaction rollback (code ${errorCode}) on attempt ${String(attempt)} of ${String(maxAttempts)}, giving up`, txnId);
             throw err;
           }
 

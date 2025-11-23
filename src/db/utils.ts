@@ -34,7 +34,9 @@ export const mapWithSeparator = <TIn, TSep, TOut>(
   const result: (TOut | TSep)[] = [];
   for (let i = 0, len = arr.length; i < len; i++) {
     if (i > 0) result.push(separator);
-    result.push(cb(arr[i], i, arr));
+    const item = arr[i];
+    if (item === undefined) continue; // TypeScript safety check (should never happen in readonly arrays)
+    result.push(cb(item, i, arr));
   }
   return result;
 };

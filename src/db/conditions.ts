@@ -13,7 +13,8 @@ import {
 } from './core';
 import { mapWithSeparator } from './utils';
 
-const conditionalParam = (a: any) => a instanceof SQLFragment || a instanceof ParentColumn || a instanceof Parameter ? a : param(a);
+type ConditionalParamType = SQLFragment<unknown> | ParentColumn | Parameter | unknown;
+const conditionalParam = (a: ConditionalParamType) => a instanceof SQLFragment || a instanceof ParentColumn || a instanceof Parameter ? a : param(a);
 
 export const isNull = sql<SQL, boolean>`${self} IS NULL`;
 export const isNotNull = sql<SQL, boolean>`${self} IS NOT NULL`;
@@ -53,9 +54,9 @@ export const notReImatch = <T extends string>(a: T) => sql<SQL, boolean | null, 
 export const isIn = <T>(a: readonly T[]) => a.length > 0 ? sql<SQL, boolean | null, T>`${self} IN (${vals(a)})` : sql`false`;
 export const isNotIn = <T>(a: readonly T[]) => a.length > 0 ? sql<SQL, boolean | null, T>`${self} NOT IN (${vals(a)})` : sql`true`;
 
-export const or = <T>(...conditions: (SQLFragment<any, T> | Whereable)[]) => sql<SQL, boolean | null, T>`(${mapWithSeparator(conditions, sql` OR `, c => c)})`;
-export const and = <T>(...conditions: (SQLFragment<any, T> | Whereable)[]) => sql<SQL, boolean | null, T>`(${mapWithSeparator(conditions, sql` AND `, c => c)})`;
-export const not = <T>(condition: SQLFragment<any, T> | Whereable) => sql<SQL, boolean | null, T>`(NOT ${condition})`;
+export const or = <T>(...conditions: (SQLFragment<unknown, T> | Whereable)[]) => sql<SQL, boolean | null, T>`(${mapWithSeparator(conditions, sql` OR `, c => c)})`;
+export const and = <T>(...conditions: (SQLFragment<unknown, T> | Whereable)[]) => sql<SQL, boolean | null, T>`(${mapWithSeparator(conditions, sql` AND `, c => c)})`;
+export const not = <T>(condition: SQLFragment<unknown, T> | Whereable) => sql<SQL, boolean | null, T>`(NOT ${condition})`;
 
 export const arrayContains = <T>(a: T[] | ParentColumn) => sql<SQL, boolean | null, T>`${self} @> ${conditionalParam(a)}`;
 export const arrayContainedIn = <T>(a: T[] | ParentColumn) => sql<SQL, boolean | null, T>`${self} <@ ${conditionalParam(a)}`;

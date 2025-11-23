@@ -78,9 +78,13 @@ function SQLForColumnsOfTable(columns: readonly Column[] | undefined, table: Tab
 }
 
 function SQLForExtras<T extends Table>(extras: ExtrasOption<T>) {
-  return extras === undefined ? [] :
-    sql` || jsonb_build_object(${mapWithSeparator(
-      Object.keys(extras), sql`, `, k => sql`${param(k)}::text, ${extras[k]}`)})`;
+  if (extras === undefined) return [];
+  return sql` || jsonb_build_object(${mapWithSeparator(
+    Object.keys(extras), sql`, `, k => {
+      const value = extras[k];
+      if (value === undefined) throw new Error(`Extra value for key "${k}" is undefined`);
+      return sql`${param(k)}::text, ${value}`;
+    })})`;
 }
 
 
@@ -540,8 +544,9 @@ export const select: SelectSignatures = function (
       })() :
         Object.keys(lateral).sort().map(k => {
           /// enables `parent('column')` in subquery's Whereables
-          const subQ = lateral[k].copy({ parentTable: alias });
-          return sql` LEFT JOIN LATERAL (${subQ}) AS "lateral_${raw(k)}" ON true`;
+          const subQ = lateral[k];
+          if (subQ === undefined) throw new Error(`Lateral subquery for key "${k}" is undefined`);
+          return sql` LEFT JOIN LATERAL (${subQ.copy({ parentTable: alias })}) AS "lateral_${raw(k)}" ON true`;
         });
 
   const

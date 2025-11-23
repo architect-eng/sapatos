@@ -74,8 +74,9 @@ export const tsForConfig = async (config: CompleteConfig, debug: (s: string) => 
     schemaNames = Object.keys(schemas),
     schemaData = (await Promise.all(
       schemaNames.map(async schema => {
+        const rules = schemas[schema];
+        if (rules === undefined) throw new Error(`No rules found for schema: ${schema}`);
         const
-          rules = schemas[schema],
           tables = rules.exclude === '*' ? [] :  // exclude takes precedence
             (await relationsInSchema(schema, queryFn))
               .filter(rel => rules.include === '*' || rules.include.indexOf(rel.name) >= 0)

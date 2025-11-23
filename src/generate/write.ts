@@ -55,6 +55,9 @@ declare module 'sapatos/custom' { }
       } else {
         warn(`Writing new custom type or domain placeholder file: ${customTypeFilePath}`);
         const customTypeFileContent = customTypeSourceFiles[customTypeFileName];
+        if (customTypeFileContent === undefined) {
+          throw new Error(`No content found for custom type file: ${customTypeFileName}`);
+        }
         fs.writeFileSync(customTypeFilePath, customTypeFileContent, { flag: 'w' });
       }
     }

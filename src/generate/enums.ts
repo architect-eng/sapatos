@@ -32,11 +32,15 @@ export const enumDataForSchema = async (schemaName: string, queryFn: (q: pg.Quer
 
 export const enumTypesForEnumData = (enums: EnumData) => {
   const types = Object.keys(enums)
-    .map(name => `
-export type ${name} = ${enums[name].map(v => `'${v}'`).join(' | ')};
+    .map(name => {
+      const values = enums[name];
+      if (values === undefined) return ''; // TypeScript safety check
+      return `
+export type ${name} = ${values.map(v => `'${v}'`).join(' | ')};
 export namespace every {
-  export type ${name} = [${enums[name].map(v => `'${v}'`).join(', ')}];
-}`)
+  export type ${name} = [${values.map(v => `'${v}'`).join(', ')}];
+}`;
+    })
     .join('');
 
   return types;
