@@ -1,8 +1,4 @@
-/*
-Zapatos: https://jawj.github.io/zapatos/
-Copyright (C) 2020 - 2023 George MacKerron
-Released under the MIT licence: see LICENCE file
-*/
+
 
 import * as path from 'path';
 import * as fs from 'fs';
@@ -19,7 +15,7 @@ export function srcWarning(config: CompleteConfig) {
   if (config.outExt === '.ts') return;  // if .ts extension is explicitly set, our legacy detection code fails
 
   const
-    legacyFolderName = 'zapatos',
+    legacyFolderName = 'sapatos',
     legacyFolderPath = path.join(config.outDir, legacyFolderName),
     legacySchemaName = 'schema.ts',
     legacySchemaPath = path.join(legacyFolderPath, legacySchemaName),
@@ -39,29 +35,29 @@ export function srcWarning(config: CompleteConfig) {
       config.warningListener || (() => void 0);
 
     warn(`
-*** IMPORTANT: ZAPATOS NO LONGER COPIES ITS SOURCE TO YOUR SOURCE TREE ***
+*** IMPORTANT: SAPATOS NO LONGER COPIES ITS SOURCE TO YOUR SOURCE TREE ***
 
 To convert your codebase, please do the following:
 
-* Make sure zapatos is a "dependency" (not merely a "devDependency") in your npm
+* Make sure sapatos is a "dependency" (not merely a "devDependency") in your npm
   'package.json'
 
-* Remove the "srcMode" key, if present, from 'zapatosconfig.json' or the config
+* Remove the "srcMode" key, if present, from 'sapatosconfig.json' or the config
   argument passed to 'generate'
 ` +
       (legacySchemaExists ? `
-* Delete the file 'zapatos/schema.ts' (but leave 'zapatos/schema.d.ts')
+* Delete the file 'sapatos/schema.ts' (but leave 'sapatos/schema.d.ts')
 ` : ``) +
       (legacySrcExists ? `
-* Delete the folder 'zapatos/src' and all its contents
+* Delete the folder 'sapatos/src' and all its contents
 ` : ``) +
       (legacyCustomTypesExist ? `
-* Transfer any customised type declarations in 'zapatos/custom' from the plain
+* Transfer any customised type declarations in 'sapatos/custom' from the plain
   old '.ts' files to the new '.d.ts' files
 
-* Delete all the plain '.ts' files in 'zapatos/custom', including 'index.ts'
+* Delete all the plain '.ts' files in 'sapatos/custom', including 'index.ts'
 ` : ``) + `
-* Ensure that the '.d.ts' files in 'zapatos' are picked up by your TypeScript
+* Ensure that the '.d.ts' files in 'sapatos' are picked up by your TypeScript
   configuration (e.g. check the "files" or "include" key in 'tsconfig.json')
 
 * If you use 'ts-node' or 'node -r ts-node/register', pass the --files option
@@ -70,24 +66,24 @@ To convert your codebase, please do the following:
 * Make the following changes to your imports (you can use VS Code's 'Replace in
   Files' command, remembering to toggle Regular Expressions on):
 
-   1) Change:  import * as zapatos from 'zapatos'
-      To:      import * as zapatos from 'zapatos/generate'
+   1) Change:  import * as sapatos from 'sapatos'
+      To:      import * as sapatos from 'sapatos/generate'
 
-      Search:  ^(\\s*import[^"']*['"])zapatos(["'])
-      Replace: $1zapatos/generate$2
+      Search:  ^(\\s*import[^"']*['"])sapatos(["'])
+      Replace: $1sapatos/generate$2
 
-   2) Change:  import * as db from './path/to/zapatos/src'
-      To:      import * as db from 'zapatos/db'
+   2) Change:  import * as db from './path/to/sapatos/src'
+      To:      import * as db from 'sapatos/db'
 
-      Search:  ^(\\s*import[^"']*['"])[^"']*/zapatos/src(["'])
-      Replace: $1zapatos/db$2
+      Search:  ^(\\s*import[^"']*['"])[^"']*/sapatos/src(["'])
+      Replace: $1sapatos/db$2
 
-   3) Change:  import * as s from './path/to/zapatos/schema'
-      To:      import type * as s from 'zapatos/schema'
+   3) Change:  import * as s from './path/to/sapatos/schema'
+      To:      import type * as s from 'sapatos/schema'
                       ^^^^
                       be sure to import type, not just import
 
-      Search:  ^(\\s*import\\s*)(type\\s*)?([^"']*['"])[^"']*/(zapatos/schema["'])
+      Search:  ^(\\s*import\\s*)(type\\s*)?([^"']*['"])[^"']*/(sapatos/schema["'])
       Replace: $1type $3$4
 
 Thank you.

@@ -1,8 +1,4 @@
-/*
-Zapatos: https://jawj.github.io/zapatos/
-Copyright (C) 2020 - 2023 George MacKerron
-Released under the MIT licence: see LICENCE file
-*/
+
 
 import * as pg from 'pg';
 import { isDatabaseError } from './pgErrors';
@@ -35,7 +31,7 @@ export type IsolationSatisfying<T extends IsolationLevel> = {
 }[T];
 
 export interface TxnClient<T extends IsolationLevel> extends pg.PoolClient {
-  _zapatos?: {
+  _sapatos?: {
     isolationLevel: T;
     txnId: number;
   };
@@ -91,7 +87,7 @@ export async function transaction<T, M extends IsolationLevel>(
   callback: (client: TxnClient<IsolationSatisfying<M>>) => Promise<T>
 ): Promise<T> {
 
-  if (Object.prototype.hasOwnProperty.call(txnClientOrQueryable, '_zapatos')) {
+  if (Object.prototype.hasOwnProperty.call(txnClientOrQueryable, '_sapatos')) {
     // if txnClientOrQueryable is a TxnClient, just pass it through
     return callback(txnClientOrQueryable as TxnClient<IsolationSatisfying<M>>);
   }
@@ -103,7 +99,7 @@ export async function transaction<T, M extends IsolationLevel>(
     clientIsOurs = typeofQueryable(txnClientOrQueryable) === 'pool',
     txnClient = (clientIsOurs ? await txnClientOrQueryable.connect() : txnClientOrQueryable) as TxnClient<M>;
 
-  txnClient._zapatos = { isolationLevel, txnId };
+  txnClient._sapatos = { isolationLevel, txnId };
 
   const
     config = getConfig(),
@@ -148,7 +144,7 @@ export async function transaction<T, M extends IsolationLevel>(
     }
 
   } finally {
-    delete txnClient._zapatos;
+    delete txnClient._sapatos;
     if (clientIsOurs) txnClient.release();
   }
 }

@@ -1,8 +1,4 @@
-/*
-Zapatos: https://jawj.github.io/zapatos/
-Copyright (C) 2020 - 2023 George MacKerron
-Released under the MIT licence: see LICENCE file
-*/
+
 
 import type { CompleteConfig } from './config';
 import type { EnumData } from './enums';
@@ -19,7 +15,7 @@ const baseTsTypeForBasePgType = (pgType: string, enums: EnumData, context: TypeC
 
   function warnAboutLargeNumbers() {
     if (warnedAboutInt8AndNumeric || config.customJSONParsingForLargeNumbers) return;
-    warn(`Note: this database has bigint/int8 and/or numeric/decimal columns, for which JSON.parse may lose precision. Please read the docs: https://jawj.github.io/zapatos/#custom-json-parsing-for-bigint-and-numeric`);
+    warn(`Note: this database has bigint/int8 and/or numeric/decimal columns, for which JSON.parse may lose precision. Please read the docs: https://jawj.github.io/sapatos/#custom-json-parsing-for-bigint-and-numeric`);
     warnedAboutInt8AndNumeric = true;
   }
 

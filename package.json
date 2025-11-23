@@ -1,21 +1,19 @@
 {
-  "name": "zapatos",
-  "version": "6.6.1",
-  "description": "Zero-Abstraction Postgres for TypeScript",
-  "homepage": "https://jawj.github.io/zapatos/",
+  "name": "sapatos",
+  "version": "0.0.1",
   "repository": {
     "type": "git",
-    "url": "https://github.com/jawj/zapatos"
+    "url": "https://github.com/architect-eng/sapatos"
   },
   "bin": {
-    "zapatos": "dist/generate/cli.js"
+    "sapatos": "dist/generate/cli.js"
   },
   "scripts": {
     "lint": "eslint src/db/*.ts src/generate/*.ts",
     "build": "npx tsc && npx gen-esm-wrapper db db.mjs && npx gen-esm-wrapper generate generate.mjs",
     "version": "npm run lint && npm run build",
     "postversion": "git push && git push --tags && npm publish",
-    "postinstall": "node -e \"console.warn('>>> \\u001b[1;33mZapatos was installed or upgraded. Please (re-)run \\u001b[1;32mnpx zapatos\\u001b[1;33m.\\u001b[0m <<<\\u000a')\""
+    "postinstall": "node -e \"console.warn('>>> \\u001b[1;33mSapatos was installed or upgraded. Please (re-)run \\u001b[1;32mnpx sapatos\\u001b[1;33m.\\u001b[0m <<<\\u000a')\""
   },
   "files": [
     "dist/db",
@@ -45,8 +43,6 @@
     "orm",
     "sql"
   ],
-  "author": "George MacKerron",
-  "license": "MIT",
   "peerDependencies": {
     "@types/pg": ">=7.14.3",
     "pg": ">=7.18.2",

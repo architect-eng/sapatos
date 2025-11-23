@@ -1,11 +1,7 @@
 #!/usr/bin/env node
 // ^^ this shebang is for the compiled JS file, not the TS source
 
-/*
-Zapatos: https://jawj.github.io/zapatos/
-Copyright (C) 2020 - 2023 George MacKerron
-Released under the MIT licence: see LICENCE file
-*/
+
 
 import * as fs from 'fs';
 import { generate } from ".";
@@ -34,7 +30,7 @@ const recursivelyInterpolateEnvVars = (obj: any): any =>
 
 void (async () => {
   const
-    configFile = 'zapatosconfig.json',
+    configFile = 'sapatosconfig.json',
     configJSON = fs.existsSync(configFile) ? fs.readFileSync(configFile, { encoding: 'utf8' }) : '{}',
     argsJSON = process.argv[2] ?? '{}';
 
@@ -43,7 +39,7 @@ void (async () => {
     fileConfig = recursivelyInterpolateEnvVars(JSON.parse(configJSON));
 
   } catch (err: any) {
-    throw new Error(`If present, zapatosconfig.json must be a valid JSON file, and all referenced environment variables must exist: ${err.message}`);
+    throw new Error(`If present, sapatosconfig.json must be a valid JSON file, and all referenced environment variables must exist: ${err.message}`);
   }
 
   let argsConfig;
@@ -51,7 +47,7 @@ void (async () => {
     argsConfig = recursivelyInterpolateEnvVars(JSON.parse(argsJSON));
 
   } catch (err: any) {
-    throw new Error(`If present, the argument to Zapatos must be valid JSON, and all referenced environment variables must exist: ${err.message}`);
+    throw new Error(`If present, the argument to Sapatos must be valid JSON, and all referenced environment variables must exist: ${err.message}`);
   }
 
   await generate({ ...fileConfig, ...argsConfig } as Config);

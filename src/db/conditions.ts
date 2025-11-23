@@ -1,8 +1,4 @@
-/*
-Zapatos: https://jawj.github.io/zapatos/
-Copyright (C) 2020 - 2023 George MacKerron
-Released under the MIT licence: see LICENCE file
-*/
+
 
 import {
   SQLFragment,
@@ -16,7 +12,7 @@ import {
 } from './core';
 
 import { mapWithSeparator } from './utils';
-import type { Whereable } from 'zapatos/schema';
+import type { Whereable } from 'sapatos/schema';
 
 const conditionalParam = (a: any) => a instanceof SQLFragment || a instanceof ParentColumn || a instanceof Parameter ? a : param(a);
 

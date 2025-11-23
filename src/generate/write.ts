@@ -1,8 +1,4 @@
-/*
-Zapatos: https://jawj.github.io/zapatos/
-Copyright (C) 2020 - 2023 George MacKerron
-Released under the MIT licence: see LICENCE file
-*/
+
 
 import * as fs from 'fs';
 import * as path from 'path';
@@ -14,7 +10,7 @@ import { header } from './header';
 
 /**
  * Generate a schema and supporting files and folders given a configuration.
- * @param suppliedConfig An object approximately matching `zapatosconfig.json`.
+ * @param suppliedConfig An object approximately matching `sapatosconfig.json`.
  */
 export const generate = async (suppliedConfig: Config) => {
   const
@@ -28,13 +24,13 @@ export const generate = async (suppliedConfig: Config) => {
 
     { ts, customTypeSourceFiles } = await tsForConfig(config, debug),
 
-    folderName = 'zapatos',
+    folderName = 'sapatos',
     schemaName = 'schema' + config.outExt,
     customFolderName = 'custom',
     customTypesIndexName = 'index' + config.outExt,
     customTypesIndexContent = header() + `
 // this empty declaration appears to fix relative imports in other custom type files
-declare module 'zapatos/custom' { }
+declare module 'sapatos/custom' { }
 `,
 
     folderTargetPath = path.join(config.outDir, folderName),

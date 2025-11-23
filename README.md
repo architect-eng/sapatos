@@ -1,7 +1,8 @@
-# Zapatos: Zero-Abstraction Postgres for TypeScript
+# Sapatos
 
-Zapatos aims to make Postgres and TypeScript work beautifully together. No abstractions, no distractions: just your database, with type safety.
+Sapatos aims to make Postgres and TypeScript work beautifully together. No abstractions, no distractions: just your database, with type safety.
 
-### »&nbsp; [Go to documentation](https://jawj.github.io/zapatos/)
+This is a fork of George MacKerron's Zapatos library.
 
-Copyright ©️ 2020 - 2025 George MacKerron. Released under the MIT licence.
+[See original Zapatos documentation.](https://jawj.github.io/zapatos/)
+
