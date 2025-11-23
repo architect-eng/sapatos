@@ -22,10 +22,7 @@
       "pull-request-header": "## 🎉 New Sapatos Release\n\nThis PR contains the next version with automated changelog generation.\n\n**Review the changelog below and merge when ready to publish!**",
       "include-v-in-tag": true,
       "label": "🚀 autorelease: pending",
-      "release-label": "✅ autorelease: published",
-      "extra-files": [
-        "README.md"
-      ]
+      "release-label": "✅ autorelease: published"
     }
   }
 }
