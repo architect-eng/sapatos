@@ -242,6 +242,17 @@ export class SQLFragment<RunResult = pg.QueryResult['rows'], Constraint = never>
   noop = false;  // if true, bypass actually running the query unless forced to e.g. for empty INSERTs
   noopResult?: RunResult;  // if noop is true and DB is bypassed, what should be returned?
 
+  /**
+   * Metadata about lateral subqueries and their result transforms.
+   * Used to apply runtime invariants (like selectExactlyOne's NotExactlyOneError)
+   * to lateral results after the main query executes.
+   */
+  lateralMetadata?: {
+    [lateralKey: string]: {
+      transform: (qr: pg.QueryResult) => unknown;
+    };
+  };
+
   constructor(protected literals: string[], protected expressions: SQL[]) { }
 
   /**
@@ -255,6 +266,11 @@ export class SQLFragment<RunResult = pg.QueryResult['rows'], Constraint = never>
     preparedName?: string;
     noop?: boolean;
     noopResult?: RunResult;
+    lateralMetadata?: {
+      [lateralKey: string]: {
+        transform: (qr: pg.QueryResult) => unknown;
+      };
+    };
   }): SQLFragment<RunResult, Constraint> {
     const { literals = this.literals, expressions = this.expressions, ...overrideRest } = override ?? {};
     const copy = new SQLFragment<RunResult, Constraint>(literals, expressions);
@@ -262,7 +278,8 @@ export class SQLFragment<RunResult = pg.QueryResult['rows'], Constraint = never>
       parentTable: this.parentTable,
       preparedName: this.preparedName,
       noop: this.noop,
-      noopResult: this.noopResult
+      noopResult: this.noopResult,
+      lateralMetadata: this.lateralMetadata
     }, overrideRest);
   }
 

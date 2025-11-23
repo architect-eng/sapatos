@@ -1,5 +1,5 @@
 
-
+import type * as pg from 'pg';
 import type {
   JSONSelectableForTable,
   WhereableForTable,
@@ -570,6 +570,18 @@ export const select: SelectSignatures = function (
           return sql` LEFT JOIN LATERAL (${subQ.copy({ parentTable: alias })}) AS "lateral_${raw(k)}" ON true`;
         });
 
+  // Capture lateral metadata for runtime invariant enforcement
+  const lateralMetadata = lateral === undefined ? undefined :
+    lateral instanceof SQLFragment ? {
+      __passthrough__: { transform: lateral.runResultTransform }
+    } :
+      Object.keys(lateral).sort().reduce<{ [key: string]: { transform: (qr: pg.QueryResult) => unknown } }>((acc, k) => {
+        const subQ = lateral[k];
+        if (subQ === undefined) throw new Error(`Lateral subquery for key "${k}" is undefined`);
+        acc[k] = { transform: subQ.runResultTransform };
+        return acc;
+      }, {});
+
   /* eslint-disable @typescript-eslint/no-explicit-any */
   const
     rowsQuery = sql<SQL, any>`SELECT${distinctSQL} ${allColsSQL} AS result FROM ${table}${tableAliasSQL}${lateralSQL}${whereSQL}${groupBySQL}${havingSQL}${orderSQL}${limitSQL}${offsetSQL}${lockSQL}`,
@@ -578,15 +590,15 @@ export const select: SelectSignatures = function (
       sql<SQL, any>`SELECT coalesce(jsonb_agg(result), '[]') AS result FROM (${rowsQuery}) AS ${raw(`"sq_${alias}"`)}`;
   /* eslint-enable @typescript-eslint/no-explicit-any */
 
-  query.runResultTransform =
-
+  // Store the original transforms before we wrap them
+  const baseTransform =
     mode === SelectResultMode.Numeric ?
       // note: pg deliberately returns strings for int8 in case 64-bit numbers overflow
       // (see https://github.com/brianc/node-pg-types#use), but we assume our counts aren't that big
-      (qr) => Number((qr.rows[0] as { result: unknown }).result) :
+      (qr: pg.QueryResult) => Number((qr.rows[0] as { result: unknown }).result) :
 
       mode === SelectResultMode.ExactlyOne ?
-        (qr) => {
+        (qr: pg.QueryResult) => {
           const row = qr.rows[0] as { result: unknown } | undefined;
           const result = row?.result;
           // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
@@ -594,7 +606,82 @@ export const select: SelectSignatures = function (
           return result as never;
         } :
         // SelectResultMode.One or SelectResultMode.Many
-        (qr) => ((qr.rows[0] as { result: unknown } | undefined)?.result as never);
+        (qr: pg.QueryResult) => ((qr.rows[0] as { result: unknown } | undefined)?.result as never);
+
+  // Wrap the base transform to apply lateral transforms
+  query.runResultTransform = (qr: pg.QueryResult) => {
+    let result = baseTransform(qr);
+
+    // Apply lateral transforms if any exist
+    if (lateralMetadata !== undefined) {
+      // Helper to apply transform to a lateral value
+      const applyLateralTransform = (lateralValue: unknown, transform: (qr: pg.QueryResult) => unknown): unknown => {
+        // Create a fake QueryResult to pass to the lateral's transform
+        const fakeQr: pg.QueryResult = {
+          rows: lateralValue === null ? [] : [{ result: lateralValue }],
+          command: 'SELECT',
+          rowCount: lateralValue === null ? 0 : 1,
+          oid: 0,
+          fields: []
+        };
+        const result = transform(fakeQr);
+        // Maintain LEFT JOIN LATERAL semantics: null lateral value should stay null
+        // (not undefined) for modes that return undefined on empty results
+        return lateralValue === null && result === undefined ? null : result;
+      };
+
+      // Handle passthrough mode vs named laterals
+      if ('__passthrough__' in lateralMetadata) {
+        // Passthrough mode: apply transform appropriately based on parent mode
+        const meta = lateralMetadata['__passthrough__'];
+        // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition, @typescript-eslint/strict-boolean-expressions
+        if (meta) {
+          if (mode === SelectResultMode.Many && Array.isArray(result)) {
+            // For Many mode, apply transform to each element
+            result = result.map((item: unknown) => applyLateralTransform(item, meta.transform)) as never;
+          } else {
+            // For One/ExactlyOne mode, apply transform to single result
+            result = applyLateralTransform(result, meta.transform) as never;
+          }
+        }
+      } else if (mode === SelectResultMode.Many) {
+        // Array of results, each with lateral properties
+        if (Array.isArray(result)) {
+          result = result.map((row: unknown) => {
+            if (row === null || typeof row !== 'object') return row;
+            const transformedRow = { ...(row as Record<string, unknown>) };
+            for (const key in lateralMetadata) {
+              const meta = lateralMetadata[key];
+              if (meta === undefined) continue;
+              const lateralValue = (row as Record<string, unknown>)[key];
+              transformedRow[key] = applyLateralTransform(lateralValue, meta.transform);
+            }
+            return transformedRow;
+          }) as never;
+        }
+      } else {
+        // Single result with lateral properties
+        // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+        if (result !== null && typeof result === 'object') {
+          const transformedResult = { ...(result as Record<string, unknown>) };
+          for (const key in lateralMetadata) {
+            const meta = lateralMetadata[key];
+            if (meta === undefined) continue;
+            const lateralValue = (result as Record<string, unknown>)[key];
+            transformedResult[key] = applyLateralTransform(lateralValue, meta.transform);
+          }
+          result = transformedResult as never;
+        }
+      }
+    }
+
+    return result as never;
+  };
+
+  // Attach lateral metadata to query for transform application
+  if (lateralMetadata !== undefined) {
+    query.lateralMetadata = lateralMetadata;
+  }
 
   // eslint-disable-next-line @typescript-eslint/no-unsafe-return
   return query;
