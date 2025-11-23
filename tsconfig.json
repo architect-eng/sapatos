@@ -20,6 +20,7 @@
     "allowUnusedLabels": false,
     "allowUnreachableCode": false,
     "forceConsistentCasingInFileNames": true,
+    "skipLibCheck": true,
     "paths": {
       "*": [
         "src/typings/*"

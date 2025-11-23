@@ -13,6 +13,7 @@
   },
   "scripts": {
     "lint": "eslint --max-warnings 0 src/**/*.ts",
+    "typecheck": "tsc --noEmit -p tsconfig.build.json && tsc --noEmit -p tsconfig.test.json",
     "build": "npx tsc --project tsconfig.build.json && npx gen-esm-wrapper db db.mjs && npx gen-esm-wrapper generate generate.mjs",
     "test": "vitest run",
     "test:watch": "vitest watch",

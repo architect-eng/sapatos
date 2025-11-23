@@ -1,7 +1,8 @@
 {
   "extends": "./tsconfig.json",
   "include": [
-    "src/**/*"
+    "src/**/*.test.ts",
+    "src/**/*.integration.test.ts"
   ],
   "exclude": [
     "node_modules"
@@ -11,6 +12,7 @@
     "moduleResolution": "bundler",
     "noEmit": true,
     "noPropertyAccessFromIndexSignature": false,
-    "noUncheckedIndexedAccess": false
+    "noUncheckedIndexedAccess": false,
+    "skipLibCheck": true
   }
 }
