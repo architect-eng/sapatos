@@ -1,6 +1,10 @@
 #!/usr/bin/env bash
 #MISE description="Runs all the verification steps necessary before committing"
 
+set -euo pipefail
+
 npm run lint
+
 npm run build
+
 npm run test

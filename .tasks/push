@@ -1,0 +1,16 @@
+#!/usr/bin/env bash
+#MISE description="Pulls the latest changes from the remote repository, runs commit, and then pushes the changes to the remote repository"
+
+set -euo pipefail
+
+git pull -r
+
+mise run commit
+
+if [ -n "$(git status --porcelain)" ]; then
+    git status
+    echo "There are changes not committed or untracked files not in .gitignore. Aborting push."
+    exit 1
+fi
+
+git push "$@"
