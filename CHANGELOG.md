@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.3.0](https://github.com/architect-eng/sapatos/compare/v0.2.0...v0.3.0) (2025-11-24)
+
+
+### Features
+
+* **conditions:** add const type parameters for improved enum inference ([9402a94](https://github.com/architect-eng/sapatos/commit/9402a9408625354a8c839c327d924a447ec2e928))
+
+
+### Bug Fixes
+
+* use @architect-eng/sapatos instead of just sapatos in our module declarations ([1c3bd8f](https://github.com/architect-eng/sapatos/commit/1c3bd8f007c7304c277baa41d56605d2e9c54997))
+
 ## [0.2.0](https://github.com/architect-eng/sapatos/compare/v0.1.0...v0.2.0) (2025-11-24)
 
 
