@@ -11,8 +11,15 @@ import {
   type UniqueIndexRow
 } from './introspection';
 import {
-  getColumnTypeInfo,
-  quoteIfIllegalIdentifier
+  formatStructureMapEntry,
+  formatNamespaceAlias,
+  formatSQLExpressionType,
+  formatCrossTableTypes,
+  formatCrossSchemaTypesForTables,
+  formatCrossSchemaTypesForSchemas
+} from './schemaFormatting';
+import {
+  getColumnTypeInfo
 } from './typeTransformation';
 
 // Re-export Relation for backward compatibility
@@ -269,124 +276,36 @@ export const dataForRelationInSchema = async (
 
 /**
  * Generate StructureMap entry for a relation
+ * Re-exported from schemaFormatting module
  */
-export const structureMapEntryForRelation = (data: RelationData): string => {
-  const { rel, schemaPrefix, selectables, JSONSelectables, whereables, insertables, updatables, uniqueIndexes, columns } = data;
-  const tableName = `${schemaPrefix}${rel.name}`;
-  const quotedColumns = columns.map(c => quoteIfIllegalIdentifier(c));
-
-  return `    '${tableName}': {
-      Table: '${tableName}';
-      Selectable: {
-        ${selectables.join('\n        ')}
-      };
-      JSONSelectable: {
-        ${JSONSelectables.join('\n        ')}
-      };
-      Whereable: {
-        ${whereables.join('\n        ')}
-      };
-      Insertable: {
-        ${insertables.length > 0 ? insertables.join('\n        ') : `[key: string]: never;`}
-      };
-      Updatable: {
-        ${updatables.length > 0 ? updatables.join('\n        ') : `[key: string]: never;`}
-      };
-      UniqueIndex: ${uniqueIndexes.length > 0 ?
-        uniqueIndexes.map((ui: UniqueIndexRow) => `'${ui.indexname}'`).join(' | ') :
-        'never'};
-      Column: ${quotedColumns.length > 0 ?
-        quotedColumns.join(' | ') :
-        'never'};
-      SQL: ${tableName}SQLExpression;
-    };`;
-};
+export const structureMapEntryForRelation = formatStructureMapEntry;
 
 /**
  * Generate namespace alias for a relation (for backward compatibility)
+ * Re-exported from schemaFormatting module
  */
-export const namespaceAliasForRelation = (data: RelationData): string => {
-  const { rel, schemaPrefix, tableComment } = data;
-  const tableName = `${schemaPrefix}${rel.name}`;
-
-  return `${tableComment}
-export namespace ${rel.name} {
-  export type Table = StructureMap['${tableName}']['Table'];
-  export type Selectable = StructureMap['${tableName}']['Selectable'];
-  export type JSONSelectable = StructureMap['${tableName}']['JSONSelectable'];
-  export type Whereable = StructureMap['${tableName}']['Whereable'];
-  export type Insertable = StructureMap['${tableName}']['Insertable'];
-  export type Updatable = StructureMap['${tableName}']['Updatable'];
-  export type UniqueIndex = StructureMap['${tableName}']['UniqueIndex'];
-  export type Column = StructureMap['${tableName}']['Column'];
-  export type OnlyCols<T extends readonly Column[]> = Pick<Selectable, T[number]>;
-  export type SQLExpression = Table | db.ColumnNames<Updatable | (keyof Updatable)[]> | db.ColumnValues<Updatable> | Whereable | Column | db.ParentColumn | db.GenericSQLExpression;
-  export type SQL = SQLExpression | SQLExpression[];
-}`;
-};
+export const namespaceAliasForRelation = formatNamespaceAlias;
 
 /**
  * Generate SQLExpression type definition for a relation
+ * Re-exported from schemaFormatting module
  */
-export const sqlExpressionTypeForRelation = (data: RelationData): string => {
-  const { schemaPrefix, rel } = data;
-  const tableName = `${schemaPrefix}${rel.name}`;
+export const sqlExpressionTypeForRelation = formatSQLExpressionType;
 
-  return `type ${tableName}SQLExpression = '${tableName}' | db.ColumnNames<StructureMap['${tableName}']['Updatable'] | (keyof StructureMap['${tableName}']['Updatable'])[]> | db.ColumnValues<StructureMap['${tableName}']['Updatable']> | StructureMap['${tableName}']['Whereable'] | StructureMap['${tableName}']['Column'] | db.ParentColumn | db.GenericSQLExpression;`;
-};
+/**
+ * Generate cross-table union types for a single schema
+ * Re-exported from schemaFormatting module
+ */
+export const crossTableTypesForTables = formatCrossTableTypes;
 
-const
-  tableMappedUnion = (arr: Relation[], suffix: string) =>
-    arr.length === 0 ? 'never' : arr.map(rel => `${rel.name}.${suffix}`).join(' | '),
-  tableMappedArray = (arr: Relation[], suffix: string) =>
-    '[' + arr.map(rel => `${rel.name}.${suffix}`).join(', ') + ']';
+/**
+ * Generate ForTable lookup types across all schemas
+ * Re-exported from schemaFormatting module
+ */
+export const crossSchemaTypesForAllTables = formatCrossSchemaTypesForTables;
 
-export const crossTableTypesForTables = (tables: Relation[]) => `${tables.length === 0 ?
-  '\n// `never` rather than `any` types would be more accurate in this no-tables case, but they stop `shortcuts.ts` compiling\n' : ''
-  }
-export type Table = ${tableMappedUnion(tables, 'Table')};
-export type Selectable = ${tableMappedUnion(tables, 'Selectable')};
-export type JSONSelectable = ${tableMappedUnion(tables, 'JSONSelectable')};
-export type Whereable = ${tableMappedUnion(tables, 'Whereable')};
-export type Insertable = ${tableMappedUnion(tables, 'Insertable')};
-export type Updatable = ${tableMappedUnion(tables, 'Updatable')};
-export type UniqueIndex = ${tableMappedUnion(tables, 'UniqueIndex')};
-export type Column = ${tableMappedUnion(tables, 'Column')};
-
-export type AllBaseTables = ${tableMappedArray(tables.filter(rel => rel.type === 'table'), 'Table')};
-export type AllForeignTables = ${tableMappedArray(tables.filter(rel => rel.type === 'fdw'), 'Table')};
-export type AllViews = ${tableMappedArray(tables.filter(rel => rel.type === 'view'), 'Table')};
-export type AllMaterializedViews = ${tableMappedArray(tables.filter(rel => rel.type === 'mview'), 'Table')};
-export type AllTablesAndViews = ${tableMappedArray(tables, 'Table')};`;
-
-export const crossSchemaTypesForAllTables = (allTables: Relation[], unprefixedSchema: string | null) =>
-  ['Selectable', 'JSONSelectable', 'Whereable', 'Insertable', 'Updatable', 'UniqueIndex', 'Column', 'SQL'].map(thingable => `
-export type ${thingable}ForTable<T extends Table> = ${allTables.length === 0 ? 'any' : `{${allTables.map(rel => `
-  "${rel.schema === unprefixedSchema ? '' : `${rel.schema}.`}${rel.name}": ${rel.schema === unprefixedSchema ? '' : `${rel.schema}.`}${rel.name}.${thingable};`).join('')}
-}[T]`};
-`).join('');
-
-const
-  schemaMappedUnion = (arr: string[], suffix: string) =>
-    arr.length === 0 ? 'any' : arr.map(s => `${s}.${suffix}`).join(' | '),
-  schemaMappedArray = (arr: string[], suffix: string) =>
-    '[' + arr.map(s => `...${s}.${suffix}`).join(', ') + ']';
-
-export const crossSchemaTypesForSchemas = (schemas: string[]) => `
-export type Schema = ${schemas.map(s => `'${s}'`).join(' | ')};
-export type Table = ${schemaMappedUnion(schemas, 'Table')};
-export type Selectable = ${schemaMappedUnion(schemas, 'Selectable')};
-export type JSONSelectable = ${schemaMappedUnion(schemas, 'JSONSelectable')};
-export type Whereable = ${schemaMappedUnion(schemas, 'Whereable')};
-export type Insertable = ${schemaMappedUnion(schemas, 'Insertable')};
-export type Updatable = ${schemaMappedUnion(schemas, 'Updatable')};
-export type UniqueIndex = ${schemaMappedUnion(schemas, 'UniqueIndex')};
-export type Column = ${schemaMappedUnion(schemas, 'Column')};
-
-export type AllSchemas = [${schemas.map(s => `'${s}'`).join(', ')}];
-export type AllBaseTables = ${schemaMappedArray(schemas, 'AllBaseTables')};
-export type AllForeignTables = ${schemaMappedArray(schemas, 'AllForeignTables')};
-export type AllViews = ${schemaMappedArray(schemas, 'AllViews')};
-export type AllMaterializedViews = ${schemaMappedArray(schemas, 'AllMaterializedViews')};
-export type AllTablesAndViews = ${schemaMappedArray(schemas, 'AllTablesAndViews')};
-`;
+/**
+ * Generate cross-schema union types for multi-schema configs
+ * Re-exported from schemaFormatting module
+ */
+export const crossSchemaTypesForSchemas = formatCrossSchemaTypesForSchemas;
