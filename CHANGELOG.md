@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.0](https://github.com/architect-eng/sapatos/compare/v0.1.0...v0.2.0) (2025-11-24)
+
+
+### Features
+
+* **types:** add nominal typing for wrapper classes ([5ce4fe9](https://github.com/architect-eng/sapatos/commit/5ce4fe9de31f1a96135194a91e6889eee8a4ce1c))
+
 ## [0.1.0](https://github.com/architect-eng/sapatos/compare/v0.0.3...v0.1.0) (2025-11-24)
 
 
