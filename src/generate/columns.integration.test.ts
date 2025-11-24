@@ -89,6 +89,7 @@ describe('Column Introspection - Integration Tests', () => {
     const { dataForRelationInSchema } = await import('./tables');
     const { enumDataForSchema } = await import('./enums');
     const { finaliseConfig } = await import('./config');
+    const { CustomTypeRegistry } = await import('./customTypes');
 
     const config = finaliseConfig({
       db: {
@@ -103,13 +104,13 @@ describe('Column Introspection - Integration Tests', () => {
     });
 
     const enums = await enumDataForSchema(schemaName, queryFn);
-    const customTypes = {};
+    const registry = new CustomTypeRegistry();
 
     const data = await dataForRelationInSchema(
       relation,
       schemaName,
       enums,
-      customTypes,
+      registry,
       config,
       queryFn
     );
@@ -117,7 +118,7 @@ describe('Column Introspection - Integration Tests', () => {
     return {
       relation,
       data,
-      customTypes,
+      customTypes: registry.getRegisteredTypes(),
     };
   };
 

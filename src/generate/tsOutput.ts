@@ -3,6 +3,7 @@
 import * as pg from 'pg';
 import type { SchemaVersionCanary } from "../db/canary";
 import type { CompleteConfig } from './config';
+import { CustomTypes, CustomTypeRegistry } from './customTypes';
 import { enumDataForSchema, enumTypesForEnumData } from './enums';
 import { header } from './header';
 import {
@@ -13,11 +14,6 @@ import {
   namespaceAliasForRelation,
   sqlExpressionTypeForRelation,
 } from './tables';
-
-
-export interface CustomTypes {
-  [name: string]: string;  // any, or TS type for domain's base type
-}
 
 const
   canaryVersion: SchemaVersionCanary['version'] = 104,
@@ -65,7 +61,7 @@ export const tsForConfig = async (config: CompleteConfig, debug: (s: string) => 
         process.exit(1);
       }
     },
-    customTypes = {},
+    registry = new CustomTypeRegistry(),
     schemaNames = Object.keys(schemas),
     schemaData = (await Promise.all(
       schemaNames.map(async schema => {
@@ -78,12 +74,13 @@ export const tsForConfig = async (config: CompleteConfig, debug: (s: string) => 
               .filter(rel => rules.exclude.indexOf(rel.name) < 0),
           enums = await enumDataForSchema(schema, queryFn),
           tableData = await Promise.all(tables.map(async table =>
-            dataForRelationInSchema(table, schema, enums, customTypes, config, queryFn)));
+            dataForRelationInSchema(table, schema, enums, registry, config, queryFn)));
 
         return { schema, tables, tableData, enums };
       }))
     ),
     allTableData = ([] as RelationData[]).concat(...schemaData.map(r => r.tableData)),
+    customTypes = registry.getRegisteredTypes(),
     hasCustomTypes = Object.keys(customTypes).length > 0;
 
   // Generate StructureMap entries

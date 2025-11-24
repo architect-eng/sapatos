@@ -67,41 +67,6 @@ export interface ColumnTypeInfo {
 }
 
 /**
- * Manages registration of custom PostgreSQL types
- * Encapsulates the side effect of tracking custom types
- */
-export class CustomTypeRegistry {
-  private types: Map<string, string> = new Map();
-
-  /**
-   * Register a custom type and return its prefixed reference
-   * @param _name - Original custom type name (not used, kept for API clarity)
-   * @param prefixedName - Transformed name (e.g., 'PgMy_type')
-   * @param baseType - Base type to register
-   * @returns The reference to use (e.g., 'c.PgMy_type')
-   */
-  register(_name: string, prefixedName: string, baseType: string): string {
-    this.types.set(prefixedName, baseType);
-    return `c.${prefixedName}`;
-  }
-
-  /**
-   * Get all registered custom types
-   * @returns Object mapping prefixed names to base types
-   */
-  getRegisteredTypes(): Record<string, string> {
-    return Object.fromEntries(this.types);
-  }
-
-  /**
-   * Check if a type is already registered
-   */
-  has(prefixedName: string): boolean {
-    return this.types.has(prefixedName);
-  }
-}
-
-/**
  * Transform a custom type name according to configuration
  * This function applies the naming convention specified in config.customTypesTransform
  *

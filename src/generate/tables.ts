@@ -2,6 +2,7 @@
 
 import * as pg from 'pg';
 import { CompleteConfig } from './config';
+import { CustomTypeRegistry } from './customTypes';
 import type { EnumData } from './enums';
 import {
   PostgresIntrospector,
@@ -9,7 +10,6 @@ import {
   type ColumnRow,
   type UniqueIndexRow
 } from './introspection';
-import type { CustomTypes } from './tsOutput';
 import {
   getColumnTypeInfo,
   quoteIfIllegalIdentifier
@@ -45,7 +45,7 @@ export const definitionForRelationInSchema = async (
   rel: Relation,
   schemaName: string,
   enums: EnumData,
-  customTypes: CustomTypes,  // an 'out' parameter
+  registry: CustomTypeRegistry,
   config: CompleteConfig,
   queryFn: (q: pg.QueryConfig) => Promise<pg.QueryResult>,
 ) => {
@@ -63,7 +63,11 @@ export const definitionForRelationInSchema = async (
 
     // Register custom type if needed
     if (typeInfo.customTypeInfo) {
-      customTypes[typeInfo.customTypeInfo.prefixedName] = typeInfo.customTypeInfo.baseType;
+      registry.register(
+        typeInfo.customTypeInfo.name,
+        typeInfo.customTypeInfo.prefixedName,
+        typeInfo.customTypeInfo.baseType
+      );
     }
 
     // Build type strings
@@ -166,7 +170,7 @@ export const dataForRelationInSchema = async (
   rel: Relation,
   schemaName: string,
   enums: EnumData,
-  customTypes: CustomTypes,  // an 'out' parameter
+  registry: CustomTypeRegistry,
   config: CompleteConfig,
   queryFn: (q: pg.QueryConfig) => Promise<pg.QueryResult>,
 ): Promise<RelationData> => {
@@ -192,7 +196,11 @@ export const dataForRelationInSchema = async (
 
     // Register custom type if needed
     if (typeInfo.customTypeInfo) {
-      customTypes[typeInfo.customTypeInfo.prefixedName] = typeInfo.customTypeInfo.baseType;
+      registry.register(
+        typeInfo.customTypeInfo.name,
+        typeInfo.customTypeInfo.prefixedName,
+        typeInfo.customTypeInfo.baseType
+      );
     }
 
     // Build type strings
