@@ -4,6 +4,7 @@ import * as pg from 'pg';
 import type { SchemaVersionCanary } from "../db/canary";
 import type { CompleteConfig } from './config';
 import { CustomTypes, CustomTypeRegistry } from './customTypes';
+import { createQueryFunction, createDebugLogger, createExitOnErrorHandler } from './database';
 import { enumDataForSchema, enumTypesForEnumData } from './enums';
 import { header } from './header';
 import {
@@ -45,22 +46,15 @@ const sourceFilesForCustomTypes = (customTypes: CustomTypes) =>
     ]));
 
 export const tsForConfig = async (config: CompleteConfig, debug: (s: string) => void) => {
-  let querySeq = 0;
   const
     { schemas, db } = config,
     pool = new pg.Pool(db),
-    queryFn = async (query: pg.QueryConfig, seq = querySeq++) => {
-      try {
-        debug(`>>> query ${String(seq)} >>>\n${query.text.replace(/^\s+|\s+$/mg, '')}\n+ ${JSON.stringify(query.values)}\n`);
-        const result = await pool.query(query);
-        debug(`<<< result ${String(seq)} <<<\n${JSON.stringify(result, null, 2)}\n`);
-        return result;
-
-      } catch (e) {
-        console.log(`*** error ${String(seq)} ***`, e);
-        process.exit(1);
-      }
-    },
+    debugLogger = createDebugLogger(debug),
+    queryFn = createQueryFunction(pool, {
+      onQueryStart: debugLogger.onQueryStart,
+      onQueryComplete: debugLogger.onQueryComplete,
+      onQueryError: createExitOnErrorHandler(),
+    }),
     registry = new CustomTypeRegistry(),
     schemaNames = Object.keys(schemas),
     schemaData = (await Promise.all(
