@@ -29,15 +29,34 @@ describe('Type Generation - End-to-End Integration Tests', () => {
       password: container.getPassword(),
     });
 
+    // Register error handler to suppress expected shutdown errors
+    // Error code 57P01: "terminating connection due to administrator command"
+    // This prevents unhandled errors when the container is stopped
+    pool.on('error', (err) => {
+      const code = 'code' in err ? (err as { code?: string }).code : undefined;
+      if (code === '57P01' || code === 'ECONNREFUSED') {
+        console.log('Expected connection error during cleanup');
+      } else {
+        console.error('Unexpected pool error:', err);
+      }
+    });
+
     // Create a unique temp directory for test outputs
     testOutputDir = fs.mkdtempSync(path.join(os.tmpdir(), 'sapatos-test-'));
   }, 60000);
 
   afterAll(async () => {
-    await pool.end();
+    // Gracefully shut down pool, suppressing expected cleanup errors
+    try {
+      await pool.end();
+    } catch (err) {
+      console.log('Pool cleanup error (expected during shutdown):', err instanceof Error ? err.message : String(err));
+    }
+
     console.log('Stopping PostgreSQL container...');
     await container.stop();
     console.log('PostgreSQL container stopped');
+
     // Clean up test output directory
     if (fs.existsSync(testOutputDir)) {
       fs.rmSync(testOutputDir, { recursive: true, force: true });

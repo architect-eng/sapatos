@@ -32,6 +32,18 @@ export async function startTestDatabase(): Promise<TestDatabase> {
       user: globalContainer.getUsername(),
       password: globalContainer.getPassword(),
     });
+
+    // Register error handler to suppress expected shutdown errors
+    // Error code 57P01: "terminating connection due to administrator command"
+    // This prevents unhandled errors when the container is stopped
+    globalPool.on('error', (err) => {
+      const code = 'code' in err ? (err as { code?: string }).code : undefined;
+      if (code === '57P01' || code === 'ECONNREFUSED') {
+        console.log('Expected connection error during cleanup');
+      } else {
+        console.error('Unexpected pool error:', err);
+      }
+    });
   }
 
   return {
@@ -45,7 +57,11 @@ export async function startTestDatabase(): Promise<TestDatabase> {
  */
 export async function stopTestDatabase(): Promise<void> {
   if (globalPool) {
-    await globalPool.end();
+    try {
+      await globalPool.end();
+    } catch (err) {
+      console.log('Pool cleanup error (expected during shutdown):', err instanceof Error ? err.message : String(err));
+    }
     globalPool = null;
   }
 
