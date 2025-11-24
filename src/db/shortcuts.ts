@@ -1,30 +1,30 @@
 
-import type * as pg from 'pg';
 import type {
-  JSONSelectableForTable,
-  WhereableForTable,
-  InsertableForTable,
-  UpdatableForTable,
-  ColumnForTable,
-  UniqueIndexForTable,
-  SQLForTable,
-  Insertable,
-  Updatable,
-  Whereable,
-  Table,
   Column,
-} from 'sapatos/schema';
+  ColumnForTable,
+  Insertable,
+  InsertableForTable,
+  JSONSelectableForTable,
+  SQLForTable,
+  Table,
+  UniqueIndexForTable,
+  Updatable,
+  UpdatableForTable,
+  Whereable,
+  WhereableForTable,
+} from '@architect-eng/sapatos/schema';
+import type * as pg from 'pg';
 import {
-  AllType,
   all,
-  SQL,
-  SQLFragment,
-  sql,
+  AllType,
   cols,
-  vals,
-  raw,
-  param,
   Default,
+  param,
+  raw,
+  SQL,
+  sql,
+  SQLFragment,
+  vals,
 } from './core';
 import {
   completeKeysWithDefaultValue,
@@ -114,7 +114,7 @@ export const insert: InsertSignatures = function (
   table: Table,
   values: Insertable | Insertable[],
   options?: ReturningOptionsForTable<Table, ColumnsOption<Table>, ExtrasOption<Table>>
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
 ): SQLFragment<any> {
 
   let query;
@@ -229,7 +229,7 @@ export const upsert: UpsertSignatures = function (
   values: Insertable | Insertable[],
   conflictTarget: Column | Column[] | Constraint<Table>,
   options?: UpsertOptions<Table, ColumnsOption<Table>, ExtrasOption<Table>, UpdateColumns<Table>, UpsertReportAction>
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
 ): SQLFragment<any> {
 
   if (Array.isArray(values) && values.length === 0) return insert(table, values);  // punt a no-op to plain insert
@@ -313,7 +313,7 @@ export const update: UpdateSignatures = function (
   values: Updatable,
   where: Whereable | SQLFragment<unknown>,
   options?: ReturningOptionsForTable<Table, ColumnsOption<Table>, ExtrasOption<Table>>
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
 ): SQLFragment<any> {
 
   // note: the ROW() constructor below is required in Postgres 10+ if we're updating a single column
@@ -349,7 +349,7 @@ export const deletes: DeleteSignatures = function (
   table: Table,
   where: Whereable | SQLFragment<unknown>,
   options?: ReturningOptionsForTable<Table, ColumnsOption<Table>, ExtrasOption<Table>>
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
 ): SQLFragment<any> {
 
   const

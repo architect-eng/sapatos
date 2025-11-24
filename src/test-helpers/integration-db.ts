@@ -16,7 +16,7 @@ let globalPool: Pool | null = null;
 export async function startTestDatabase(): Promise<TestDatabase> {
   if (!globalContainer) {
     console.log('Starting PostgreSQL container...');
-    globalContainer = await new PostgreSqlContainer('postgres:16-alpine')
+    globalContainer = await new PostgreSqlContainer('postgres:18-alpine')
       .withDatabase('test_db')
       .withUsername('test_user')
       .withPassword('test_pass')

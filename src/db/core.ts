@@ -1,12 +1,12 @@
 
 
-import type * as pg from 'pg';
 import type {
+  Column,
+  Table,
   Updatable,
   Whereable,
-  Table,
-  Column,
-} from 'sapatos/schema';
+} from '@architect-eng/sapatos/schema';
+import type * as pg from 'pg';
 import { getConfig, SQLQuery } from './config';
 import { isPOJO, NoInfer } from './utils';
 
@@ -215,7 +215,7 @@ export function parent<T extends Column | undefined = Column | undefined>(x?: T)
 
 
 export type GenericSQLExpression = SQLFragment<unknown, unknown> | Parameter | DefaultType | DangerousRawString | SelfType;
-export type SQLExpression = Table | ColumnNames<Updatable | (keyof Updatable)[]> | ColumnValues<Updatable | unknown[]> | Whereable   | ParentColumn | GenericSQLExpression;
+export type SQLExpression = Table | ColumnNames<Updatable | (keyof Updatable)[]> | ColumnValues<Updatable | unknown[]> | Whereable | ParentColumn | GenericSQLExpression;
 export type SQL = SQLExpression | SQLExpression[];
 
 export type Queryable = pg.ClientBase | pg.Pool;

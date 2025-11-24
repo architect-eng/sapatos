@@ -3,9 +3,8 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import * as pg from 'pg';
-import { finaliseConfig, Config } from './config';
+import { Config, finaliseConfig } from './config';
 import { header } from './header';
-import * as legacy from './legacy';
 import { tsForConfig } from './tsOutput';
 
 
@@ -32,7 +31,7 @@ export const generate = async (suppliedConfig: Config, existingPool?: pg.Pool) =
     customTypesIndexName = 'index' + config.outExt,
     customTypesIndexContent = header() + `
 // this empty declaration appears to fix relative imports in other custom type files
-declare module 'sapatos/custom' { }
+declare module '@architect-eng/sapatos/custom' { }
 `,
 
     folderTargetPath = path.join(config.outDir, folderName),
@@ -67,6 +66,4 @@ declare module 'sapatos/custom' { }
     log(`Writing custom types file: ${customTypesIndexTargetPath}`);
     fs.writeFileSync(customTypesIndexTargetPath, customTypesIndexContent, { flag: 'w' });
   }
-
-  legacy.srcWarning(config);
 };

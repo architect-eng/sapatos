@@ -60,13 +60,13 @@ Example configuration:
 
 Sapatos consists of two primary modules that work together:
 
-1. **`sapatos/db`** (Runtime Module)
+1. **`@architect-eng/sapatos/db`** (Runtime Module)
    - Core SQL query building and execution
    - Transaction management with automatic retry
    - Type-safe query shortcuts (insert, update, select, delete, upsert)
    - Condition builders for WHERE clauses
 
-2. **`sapatos/generate`** (Code Generation Module)
+2. **`@architect-eng/sapatos/generate`** (Code Generation Module)
    - CLI tool that introspects PostgreSQL schemas
    - Generates TypeScript type definitions
    - Creates type-safe interfaces for tables, views, and custom types

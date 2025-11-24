@@ -128,7 +128,7 @@ describe('tsForConfig - Module Augmentation', () => {
     const { ts } = await tsForConfig(config, () => {});
 
     // Verify it uses declare module with StructureMap
-    expect(ts).toContain("declare module 'sapatos/schema'");
+    expect(ts).toContain("declare module '@architect-eng/sapatos/schema'");
     expect(ts).toContain('interface StructureMap');
 
     // Verify users table is in StructureMap
@@ -290,7 +290,7 @@ describe('tsForConfig - Module Augmentation', () => {
     const { ts, customTypeSourceFiles } = await tsForConfig(config, () => {});
 
     // Verify custom type import
-    expect(ts).toMatch(/declare module 'sapatos\/schema'\s*{[\s\S]*import type \* as c from 'sapatos\/custom'/);
+    expect(ts).toMatch(/declare module '@architect-eng\/sapatos\/schema'\s*{[\s\S]*import type \* as c from '@architect-eng\/sapatos\/custom'/);
 
     // Verify custom type is used in StructureMap
     expect(ts).toContain('c.PgMy_custom_type');
@@ -364,7 +364,7 @@ describe('tsForConfig - Module Augmentation', () => {
     // Verify version canary exists
     expect(ts).toContain('export interface schemaVersionCanary');
     expect(ts).toContain('extends db.SchemaVersionCanary');
-    expect(ts).toContain('version: 104');
+    expect(ts).toContain('version: 105');
   });
 
   it('generates proper header comment', async () => {

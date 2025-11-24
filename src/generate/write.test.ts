@@ -1,15 +1,14 @@
 /* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-return, @typescript-eslint/strict-boolean-expressions, @typescript-eslint/no-unnecessary-condition, @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-confusing-void-expression */
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { createMockConfig } from './__fixtures__/common-fixtures';
 import { generate } from './write';
 
 // Use vi.hoisted() to create mocks before module imports
-const { mockExistsSync, mockMkdirSync, mockWriteFileSync, mockTsForConfig, mockSrcWarning } = vi.hoisted(() => ({
+const { mockExistsSync, mockMkdirSync, mockWriteFileSync, mockTsForConfig } = vi.hoisted(() => ({
   mockExistsSync: vi.fn(),
   mockMkdirSync: vi.fn(),
   mockWriteFileSync: vi.fn(),
   mockTsForConfig: vi.fn(),
-  mockSrcWarning: vi.fn(),
 }));
 
 vi.mock('fs', () => ({
@@ -20,10 +19,6 @@ vi.mock('fs', () => ({
 
 vi.mock('./tsOutput', () => ({
   tsForConfig: mockTsForConfig,
-}));
-
-vi.mock('./legacy', () => ({
-  srcWarning: mockSrcWarning,
 }));
 
 describe('write Module', () => {
@@ -99,15 +94,6 @@ describe('write Module', () => {
         expect.anything(),
         expect.anything(),
         mockPool
-      );
-    });
-
-    it('calls legacy.srcWarning after generation', async () => {
-      const config = createMockConfig();
-      await generate(config);
-
-      expect(mockSrcWarning).toHaveBeenCalledWith(
-        expect.objectContaining({ outDir: config.outDir })
       );
     });
 
@@ -221,7 +207,7 @@ describe('write Module', () => {
 
       expect(mockWriteFileSync).toHaveBeenCalledWith(
         expect.stringContaining('custom/index.d.ts'),
-        expect.stringContaining("declare module 'sapatos/custom'"),
+        expect.stringContaining("declare module '@architect-eng/sapatos/custom'"),
         { flag: 'w' }
       );
     });
@@ -318,7 +304,7 @@ describe('write Module', () => {
     });
 
     it('supports progressListener: true (uses console.log)', async () => {
-      const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+      const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => { });
       const config = createMockConfig({ progressListener: true });
 
       await generate(config);

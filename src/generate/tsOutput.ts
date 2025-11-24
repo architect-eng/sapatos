@@ -17,9 +17,9 @@ import {
 } from './tables';
 
 const
-  canaryVersion: SchemaVersionCanary['version'] = 104,
+  canaryVersion: SchemaVersionCanary['version'] = 105,
   versionCanary = `
-// got a type error on schemaVersionCanary below? update by running \`npx sapatos\`
+// got a type error on schemaVersionCanary below? update by running \`npx @architect-eng/sapatos\`
 export interface schemaVersionCanary extends db.SchemaVersionCanary { version: ${String(canaryVersion)} }
 `;
 
@@ -39,8 +39,8 @@ const sourceFilesForCustomTypes = (customTypes: CustomTypes) =>
   Object.fromEntries(Object.entries(customTypes)
     .map(([name, baseType]) => [
       name,
-      customTypeHeader + declareModule('sapatos/custom',
-        (baseType === 'db.JSONValue' ? `import type * as db from 'sapatos/db';\n` : ``) +
+      customTypeHeader + declareModule('@architect-eng/sapatos/custom',
+        (baseType === 'db.JSONValue' ? `import type * as db from '@architect-eng/sapatos/db';\n` : ``) +
         `export type ${name} = ${baseType};  // replace with your custom type or interface as desired`
       )
     ]));
@@ -128,9 +128,9 @@ export type UniqueIndex = StructureMap[Table]['UniqueIndex'];
 export type Column = StructureMap[Table]['Column'];
 `;
 
-  const ts = header() + declareModule('sapatos/schema',
-    `\nimport type * as db from 'sapatos/db';\n` +
-    (hasCustomTypes ? `import type * as c from 'sapatos/custom';\n` : ``) +
+  const ts = header() + declareModule('@architect-eng/sapatos/schema',
+    `\nimport type * as db from '@architect-eng/sapatos/db';\n` +
+    (hasCustomTypes ? `import type * as c from '@architect-eng/sapatos/custom';\n` : ``) +
     versionCanary + '\n\n' +
     (enumTypes ? `/* --- enums --- */\n${enumTypes}\n\n` : '') +
     `/* --- SQLExpression helper types --- */\n` +

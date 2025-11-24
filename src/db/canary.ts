@@ -5,4 +5,4 @@
  * generated schema format, in order to raise a type error and thereby force
  * schema regeneration.
  */
-export interface SchemaVersionCanary { version: 104 }
+export interface SchemaVersionCanary { version: 105 }

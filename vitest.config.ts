@@ -21,7 +21,7 @@ export default defineConfig({
   },
   resolve: {
     alias: {
-      'sapatos/schema': path.resolve(__dirname, 'src/typings/sapatos/schema.ts'),
+      '@architect-eng/sapatos/schema': path.resolve(__dirname, 'src/typings/@architect-eng/sapatos/schema.ts'),
     },
   },
 });

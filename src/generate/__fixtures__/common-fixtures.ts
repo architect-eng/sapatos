@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import type { CompleteConfig } from '../config';
 import type { Relation } from '../tables';
 
