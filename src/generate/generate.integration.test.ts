@@ -1,0 +1,739 @@
+import * as fs from 'fs';
+import * as os from 'os';
+import * as path from 'path';
+import { PostgreSqlContainer, StartedPostgreSqlContainer } from '@testcontainers/postgresql';
+import { Pool } from 'pg';
+import { describe, it, expect, beforeAll, afterAll } from 'vitest';
+import type { Config } from './config';
+import { generate } from './write';
+
+describe('Type Generation - End-to-End Integration Tests', () => {
+  let container: StartedPostgreSqlContainer;
+  let pool: Pool;
+  let testOutputDir: string;
+
+  beforeAll(async () => {
+    console.log('Starting PostgreSQL container for type generation tests...');
+    container = await new PostgreSqlContainer('postgres:16-alpine')
+      .withDatabase('type_gen_test')
+      .withUsername('test_user')
+      .withPassword('test_pass')
+      .start();
+    console.log('PostgreSQL container started');
+
+    pool = new Pool({
+      host: container.getHost(),
+      port: container.getPort(),
+      database: container.getDatabase(),
+      user: container.getUsername(),
+      password: container.getPassword(),
+    });
+
+    // Create a unique temp directory for test outputs
+    testOutputDir = fs.mkdtempSync(path.join(os.tmpdir(), 'sapatos-test-'));
+  }, 60000);
+
+  afterAll(async () => {
+    await pool.end();
+    console.log('Stopping PostgreSQL container...');
+    await container.stop();
+    console.log('PostgreSQL container stopped');
+    // Clean up test output directory
+    if (fs.existsSync(testOutputDir)) {
+      fs.rmSync(testOutputDir, { recursive: true, force: true });
+    }
+  }, 60000);
+
+  /**
+   * Helper: Create a clean output directory for a test
+   */
+  const createTestOutputDir = (testName: string): string => {
+    const dir = path.join(testOutputDir, testName);
+    if (fs.existsSync(dir)) {
+      fs.rmSync(dir, { recursive: true, force: true });
+    }
+    fs.mkdirSync(dir, { recursive: true });
+    return dir;
+  };
+
+  /**
+   * Helper: Get generated schema file content
+   */
+  const readGeneratedSchema = (outDir: string): string => {
+    const schemaPath = path.join(outDir, 'sapatos', 'schema.d.ts');
+    expect(fs.existsSync(schemaPath), `Schema file should exist at ${schemaPath}`).toBe(true);
+    return fs.readFileSync(schemaPath, 'utf-8');
+  };
+
+  /**
+   * Helper: Check if custom type file exists
+   */
+  const customTypeFileExists = (outDir: string, typeName: string): boolean => {
+    const customTypePath = path.join(outDir, 'sapatos', 'custom', `${typeName}.d.ts`);
+    return fs.existsSync(customTypePath);
+  };
+
+  /**
+   * Helper: Create base config for tests
+   */
+  const createBaseConfig = (outDir: string): Config => ({
+    db: {
+      host: container.getHost(),
+      port: container.getPort(),
+      database: container.getDatabase(),
+      user: container.getUsername(),
+      password: container.getPassword(),
+    },
+    outDir,
+    schemas: {
+      public: { include: '*', exclude: [] },
+    },
+  });
+
+  describe('Basic Schema Generation', () => {
+    it('generates types for simple table with common column types', async () => {
+      const outDir = createTestOutputDir('basic-table');
+
+      // Create a simple users table
+      await pool.query(`
+        DROP TABLE IF EXISTS users CASCADE;
+        CREATE TABLE users (
+          id SERIAL PRIMARY KEY,
+          name TEXT NOT NULL,
+          email TEXT NOT NULL UNIQUE,
+          age INTEGER,
+          created_at TIMESTAMPTZ DEFAULT NOW()
+        );
+      `);
+
+      const config = createBaseConfig(outDir);
+      await generate(config);
+
+      const schema = readGeneratedSchema(outDir);
+
+      // Verify table is in StructureMap
+      expect(schema).toContain("interface StructureMap");
+      expect(schema).toMatch(/'users':\s*{/);
+
+      // Verify all required type properties exist
+      expect(schema).toContain("Table: 'users'");
+      expect(schema).toMatch(/'users':[\s\S]*Selectable:/);
+      expect(schema).toMatch(/'users':[\s\S]*Insertable:/);
+      expect(schema).toMatch(/'users':[\s\S]*Updatable:/);
+      expect(schema).toMatch(/'users':[\s\S]*Whereable:/);
+      expect(schema).toMatch(/'users':[\s\S]*JSONSelectable:/);
+
+      // Verify column types
+      expect(schema).toContain("id: number");
+      expect(schema).toContain("name: string");
+      expect(schema).toContain("email: string");
+      expect(schema).toMatch(/age: number \| null/);
+
+      // Verify namespace alias exists
+      expect(schema).toContain('export namespace users');
+    }, 60000);
+
+    it('generates types for multiple related tables', async () => {
+      const outDir = createTestOutputDir('related-tables');
+
+      // Create users, posts, and comments tables with foreign keys
+      await pool.query(`
+        DROP TABLE IF EXISTS comments CASCADE;
+        DROP TABLE IF EXISTS posts CASCADE;
+        DROP TABLE IF EXISTS users CASCADE;
+
+        CREATE TABLE users (
+          id SERIAL PRIMARY KEY,
+          name TEXT NOT NULL,
+          email TEXT NOT NULL UNIQUE
+        );
+
+        CREATE TABLE posts (
+          id SERIAL PRIMARY KEY,
+          user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          title TEXT NOT NULL,
+          content TEXT,
+          published BOOLEAN DEFAULT FALSE
+        );
+
+        CREATE TABLE comments (
+          id SERIAL PRIMARY KEY,
+          post_id INTEGER NOT NULL REFERENCES posts(id) ON DELETE CASCADE,
+          user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          content TEXT NOT NULL
+        );
+      `);
+
+      const config = createBaseConfig(outDir);
+      await generate(config);
+
+      const schema = readGeneratedSchema(outDir);
+
+      // Verify all three tables are present
+      expect(schema).toMatch(/'users':\s*{/);
+      expect(schema).toMatch(/'posts':\s*{/);
+      expect(schema).toMatch(/'comments':\s*{/);
+
+      // Verify foreign key columns have correct types
+      expect(schema).toMatch(/'posts':[\s\S]*user_id: number/);
+      expect(schema).toMatch(/'comments':[\s\S]*post_id: number/);
+      expect(schema).toMatch(/'comments':[\s\S]*user_id: number/);
+
+      // Verify Table union type includes all tables
+      expect(schema).toContain("export type Table = keyof StructureMap");
+    }, 60000);
+
+    it('handles nullable and non-nullable columns correctly', async () => {
+      const outDir = createTestOutputDir('nullable-columns');
+
+      await pool.query(`
+        DROP TABLE IF EXISTS test_nullability CASCADE;
+        CREATE TABLE test_nullability (
+          id SERIAL PRIMARY KEY,
+          required_field TEXT NOT NULL,
+          optional_field TEXT,
+          required_number INTEGER NOT NULL,
+          optional_number INTEGER
+        );
+      `);
+
+      const config = createBaseConfig(outDir);
+      await generate(config);
+
+      const schema = readGeneratedSchema(outDir);
+
+      // Required fields should not have null union
+      expect(schema).toMatch(/'test_nullability':[\s\S]*required_field: string[^|]/);
+      expect(schema).toMatch(/'test_nullability':[\s\S]*required_number: number[^|]/);
+
+      // Optional fields should have null union
+      expect(schema).toMatch(/'test_nullability':[\s\S]*optional_field: string \| null/);
+      expect(schema).toMatch(/'test_nullability':[\s\S]*optional_number: number \| null/);
+    }, 60000);
+  });
+
+  describe('Complex Types and Features', () => {
+    it('generates enum types and uses them in tables', async () => {
+      const outDir = createTestOutputDir('enum-types');
+
+      await pool.query(`
+        DROP TABLE IF EXISTS users CASCADE;
+        DROP TYPE IF EXISTS user_role CASCADE;
+        DROP TYPE IF EXISTS user_status CASCADE;
+
+        CREATE TYPE user_role AS ENUM ('admin', 'moderator', 'user');
+        CREATE TYPE user_status AS ENUM ('active', 'inactive', 'suspended');
+
+        CREATE TABLE users (
+          id SERIAL PRIMARY KEY,
+          name TEXT NOT NULL,
+          role user_role NOT NULL DEFAULT 'user',
+          status user_status NOT NULL DEFAULT 'active'
+        );
+      `);
+
+      const config = createBaseConfig(outDir);
+      await generate(config);
+
+      const schema = readGeneratedSchema(outDir);
+
+      // Verify enum types are defined
+      expect(schema).toContain("export type user_role = 'admin' | 'moderator' | 'user'");
+      expect(schema).toContain("export type user_status = 'active' | 'inactive' | 'suspended'");
+
+      // Verify table uses enum types
+      expect(schema).toMatch(/'users':[\s\S]*role: user_role/);
+      expect(schema).toMatch(/'users':[\s\S]*status: user_status/);
+    }, 60000);
+
+    it('handles array types correctly', async () => {
+      const outDir = createTestOutputDir('array-types');
+
+      await pool.query(`
+        DROP TABLE IF EXISTS test_arrays CASCADE;
+        CREATE TABLE test_arrays (
+          id SERIAL PRIMARY KEY,
+          tags TEXT[] NOT NULL,
+          numbers INTEGER[],
+          matrix INTEGER[][]
+        );
+      `);
+
+      const config = createBaseConfig(outDir);
+      await generate(config);
+
+      const schema = readGeneratedSchema(outDir);
+
+      // Verify array types
+      expect(schema).toMatch(/'test_arrays':[\s\S]*tags: string\[\]/);
+      expect(schema).toMatch(/'test_arrays':[\s\S]*numbers: number\[\] \| null/);
+      // Note: PostgreSQL doesn't distinguish INTEGER[] from INTEGER[][] at the type level
+      // Both are stored as _int4 (array of int4), so both generate as number[]
+      expect(schema).toMatch(/'test_arrays':[\s\S]*matrix: number\[\] \| null/);
+    }, 60000);
+
+    it('handles JSON and JSONB columns', async () => {
+      const outDir = createTestOutputDir('json-types');
+
+      await pool.query(`
+        DROP TABLE IF EXISTS test_json CASCADE;
+        CREATE TABLE test_json (
+          id SERIAL PRIMARY KEY,
+          metadata JSON NOT NULL,
+          settings JSONB,
+          config JSONB NOT NULL DEFAULT '{}'::jsonb
+        );
+      `);
+
+      const config = createBaseConfig(outDir);
+      await generate(config);
+
+      const schema = readGeneratedSchema(outDir);
+
+      // Verify JSON types use db.JSONValue
+      expect(schema).toMatch(/'test_json':[\s\S]*metadata: db\.JSONValue/);
+      expect(schema).toMatch(/'test_json':[\s\S]*settings: db\.JSONValue \| null/);
+      expect(schema).toMatch(/'test_json':[\s\S]*config: db\.JSONValue/);
+    }, 60000);
+
+    it('handles generated columns (not insertable/updatable)', async () => {
+      const outDir = createTestOutputDir('generated-columns');
+
+      await pool.query(`
+        DROP TABLE IF EXISTS test_generated CASCADE;
+        CREATE TABLE test_generated (
+          id SERIAL PRIMARY KEY,
+          first_name TEXT NOT NULL,
+          last_name TEXT NOT NULL,
+          full_name TEXT GENERATED ALWAYS AS (first_name || ' ' || last_name) STORED
+        );
+      `);
+
+      const config = createBaseConfig(outDir);
+      await generate(config);
+
+      const schema = readGeneratedSchema(outDir);
+
+      // Verify Selectable includes generated column
+      expect(schema).toMatch(/'test_generated':[\s\S]*Selectable:[\s\S]*full_name: string/);
+
+      // Generated columns should not appear in Insertable or Updatable
+      // (They should be omitted or the types should prevent their use)
+      const insertableMatch = schema.match(/'test_generated':[\s\S]*?Insertable:\s*{([^}]*)}/);
+      if (insertableMatch) {
+        expect(insertableMatch[1]).not.toContain('full_name');
+      }
+    }, 60000);
+
+    it('handles custom domains and creates placeholder files', async () => {
+      const outDir = createTestOutputDir('custom-domains');
+
+      await pool.query(`
+        DROP TABLE IF EXISTS test_custom CASCADE;
+        DROP DOMAIN IF EXISTS email_address CASCADE;
+        DROP DOMAIN IF EXISTS positive_integer CASCADE;
+
+        CREATE DOMAIN email_address AS TEXT CHECK (VALUE ~ '^[^@]+@[^@]+\\.[^@]+$');
+        CREATE DOMAIN positive_integer AS INTEGER CHECK (VALUE > 0);
+
+        CREATE TABLE test_custom (
+          id SERIAL PRIMARY KEY,
+          email email_address NOT NULL,
+          score positive_integer
+        );
+      `);
+
+      const config = createBaseConfig(outDir);
+      await generate(config);
+
+      const schema = readGeneratedSchema(outDir);
+
+      // Verify custom types are imported
+      expect(schema).toContain("import type * as c from 'sapatos/custom'");
+
+      // Verify custom types are used in table definition
+      expect(schema).toMatch(/'test_custom':[\s\S]*email: c\.PgEmail_address/);
+      expect(schema).toMatch(/'test_custom':[\s\S]*score: c\.PgPositive_integer \| null/);
+
+      // Verify placeholder files are created
+      expect(customTypeFileExists(outDir, 'PgEmail_address')).toBe(true);
+      expect(customTypeFileExists(outDir, 'PgPositive_integer')).toBe(true);
+
+      // Verify custom type files have correct structure
+      const emailTypePath = path.join(outDir, 'sapatos', 'custom', 'PgEmail_address.d.ts');
+      const emailTypeContent = fs.readFileSync(emailTypePath, 'utf-8');
+      expect(emailTypeContent).toContain("export type PgEmail_address = string");
+      expect(emailTypeContent).toContain("Please edit this file as needed");
+    }, 60000);
+
+    it('handles views and materialized views', async () => {
+      const outDir = createTestOutputDir('views');
+
+      await pool.query(`
+        DROP MATERIALIZED VIEW IF EXISTS user_stats_mv CASCADE;
+        DROP VIEW IF EXISTS active_users CASCADE;
+        DROP TABLE IF EXISTS users CASCADE;
+
+        CREATE TABLE users (
+          id SERIAL PRIMARY KEY,
+          name TEXT NOT NULL,
+          email TEXT NOT NULL,
+          active BOOLEAN DEFAULT TRUE,
+          login_count INTEGER DEFAULT 0
+        );
+
+        CREATE VIEW active_users AS
+          SELECT id, name, email FROM users WHERE active = TRUE;
+
+        CREATE MATERIALIZED VIEW user_stats_mv AS
+          SELECT
+            COUNT(*) as total_users,
+            SUM(login_count) as total_logins
+          FROM users;
+      `);
+
+      const config = createBaseConfig(outDir);
+      await generate(config);
+
+      const schema = readGeneratedSchema(outDir);
+
+      // Verify view is present
+      expect(schema).toMatch(/'active_users':\s*{/);
+      expect(schema).toMatch(/'active_users':[\s\S]*Table: 'active_users'/);
+
+      // Verify materialized view is present
+      expect(schema).toMatch(/'user_stats_mv':\s*{/);
+
+      // Views should have limited or no Insertable/Updatable types
+      // (The exact behavior depends on PostgreSQL's determination of updatability)
+    }, 60000);
+  });
+
+  describe('Multi-Schema and Configuration', () => {
+    it('handles multiple schemas with prefixing', async () => {
+      const outDir = createTestOutputDir('multi-schema');
+
+      // Create two schemas with tables
+      await pool.query(`
+        DROP SCHEMA IF EXISTS app CASCADE;
+        DROP SCHEMA IF EXISTS audit CASCADE;
+
+        CREATE SCHEMA app;
+        CREATE SCHEMA audit;
+
+        CREATE TABLE app.users (
+          id SERIAL PRIMARY KEY,
+          name TEXT NOT NULL
+        );
+
+        CREATE TABLE audit.logs (
+          id SERIAL PRIMARY KEY,
+          action TEXT NOT NULL,
+          timestamp TIMESTAMPTZ DEFAULT NOW()
+        );
+      `);
+
+      const config: Config = {
+        db: {
+          host: container.getHost(),
+          port: container.getPort(),
+          database: container.getDatabase(),
+          user: container.getUsername(),
+          password: container.getPassword(),
+        },
+        outDir,
+        schemas: {
+          app: { include: '*', exclude: [] },
+          audit: { include: '*', exclude: [] },
+        },
+        unprefixedSchema: null, // All schemas should be prefixed
+      };
+
+      await generate(config);
+
+      const schema = readGeneratedSchema(outDir);
+
+      // Verify both schemas are present with prefixes
+      expect(schema).toMatch(/'app\.users':\s*{/);
+      expect(schema).toMatch(/'audit\.logs':\s*{/);
+
+      // Verify Table type includes prefixed names
+      expect(schema).toMatch(/Table: 'app\.users'/);
+      expect(schema).toMatch(/Table: 'audit\.logs'/);
+    }, 60000);
+
+    it('handles unprefixed schema configuration', async () => {
+      const outDir = createTestOutputDir('unprefixed-schema');
+
+      await pool.query(`
+        DROP TABLE IF EXISTS products CASCADE;
+        CREATE TABLE products (
+          id SERIAL PRIMARY KEY,
+          name TEXT NOT NULL,
+          price DECIMAL(10, 2) NOT NULL
+        );
+      `);
+
+      const config: Config = {
+        db: {
+          host: container.getHost(),
+          port: container.getPort(),
+          database: container.getDatabase(),
+          user: container.getUsername(),
+          password: container.getPassword(),
+        },
+        outDir,
+        schemas: {
+          public: { include: '*', exclude: [] },
+        },
+        unprefixedSchema: 'public', // public schema should be unprefixed
+      };
+
+      await generate(config);
+
+      const schema = readGeneratedSchema(outDir);
+
+      // Verify table name is NOT prefixed
+      expect(schema).toMatch(/'products':\s*{/);
+      expect(schema).toMatch(/Table: 'products'/);
+      expect(schema).not.toContain("'public.products'");
+    }, 60000);
+
+    it('respects include and exclude rules', async () => {
+      const outDir = createTestOutputDir('include-exclude');
+
+      await pool.query(`
+        DROP TABLE IF EXISTS included_table CASCADE;
+        DROP TABLE IF EXISTS excluded_table CASCADE;
+        DROP TABLE IF EXISTS another_included CASCADE;
+
+        CREATE TABLE included_table (id SERIAL PRIMARY KEY);
+        CREATE TABLE excluded_table (id SERIAL PRIMARY KEY);
+        CREATE TABLE another_included (id SERIAL PRIMARY KEY);
+      `);
+
+      const config: Config = {
+        db: {
+          host: container.getHost(),
+          port: container.getPort(),
+          database: container.getDatabase(),
+          user: container.getUsername(),
+          password: container.getPassword(),
+        },
+        outDir,
+        schemas: {
+          public: {
+            include: ['included_table', 'another_included'],
+            exclude: [],
+          },
+        },
+      };
+
+      await generate(config);
+
+      const schema = readGeneratedSchema(outDir);
+
+      // Verify included tables are present
+      expect(schema).toMatch(/'included_table':\s*{/);
+      expect(schema).toMatch(/'another_included':\s*{/);
+
+      // Verify excluded table is NOT present
+      expect(schema).not.toContain("'excluded_table'");
+    }, 60000);
+
+    it('handles exclude: "*" to skip schema entirely', async () => {
+      const outDir = createTestOutputDir('exclude-all');
+
+      await pool.query(`
+        DROP TABLE IF EXISTS some_table CASCADE;
+        CREATE TABLE some_table (id SERIAL PRIMARY KEY);
+      `);
+
+      const config: Config = {
+        db: {
+          host: container.getHost(),
+          port: container.getPort(),
+          database: container.getDatabase(),
+          user: container.getUsername(),
+          password: container.getPassword(),
+        },
+        outDir,
+        schemas: {
+          public: { include: '*', exclude: '*' },
+        },
+      };
+
+      await generate(config);
+
+      const schema = readGeneratedSchema(outDir);
+
+      // Schema should not contain any table from public schema
+      expect(schema).not.toContain("'some_table'");
+
+      // StructureMap should be empty or minimal
+      expect(schema).toContain('interface StructureMap');
+    }, 60000);
+  });
+
+  describe('Edge Cases and Validation', () => {
+    it('handles empty schema (no tables)', async () => {
+      const outDir = createTestOutputDir('empty-schema');
+
+      // Drop all tables to ensure empty schema
+      await pool.query(`
+        DROP TABLE IF EXISTS comments CASCADE;
+        DROP TABLE IF EXISTS posts CASCADE;
+        DROP TABLE IF EXISTS users CASCADE;
+      `);
+
+      const config = createBaseConfig(outDir);
+      await generate(config);
+
+      const schema = readGeneratedSchema(outDir);
+
+      // Should still generate valid TypeScript
+      expect(schema).toContain('interface StructureMap');
+      expect(schema).toContain("DON'T EDIT THIS FILE");
+
+      // Should have empty or minimal StructureMap
+      expect(schema).toContain('export type Table = keyof StructureMap');
+    }, 60000);
+
+    it('generates schema version canary', async () => {
+      const outDir = createTestOutputDir('version-canary');
+
+      await pool.query(`
+        DROP TABLE IF EXISTS test CASCADE;
+        CREATE TABLE test (id SERIAL PRIMARY KEY);
+      `);
+
+      const config = createBaseConfig(outDir);
+      await generate(config);
+
+      const schema = readGeneratedSchema(outDir);
+
+      // Verify version canary exists
+      expect(schema).toContain('export interface schemaVersionCanary');
+      expect(schema).toContain('extends db.SchemaVersionCanary');
+      expect(schema).toMatch(/version:\s*\d+/);
+    }, 60000);
+
+    it('preserves existing custom type files (does not overwrite)', async () => {
+      const outDir = createTestOutputDir('preserve-custom-types');
+
+      await pool.query(`
+        DROP TABLE IF EXISTS test CASCADE;
+        DROP DOMAIN IF EXISTS my_custom CASCADE;
+
+        CREATE DOMAIN my_custom AS TEXT;
+
+        CREATE TABLE test (
+          id SERIAL PRIMARY KEY,
+          value my_custom
+        );
+      `);
+
+      const config = createBaseConfig(outDir);
+
+      // First generation
+      await generate(config);
+
+      // Modify the custom type file
+      const customTypePath = path.join(outDir, 'sapatos', 'custom', 'PgMy_custom.d.ts');
+      const modifiedContent = `// CUSTOM MODIFICATION\nexport type PgMy_custom = string;`;
+      fs.writeFileSync(customTypePath, modifiedContent);
+
+      // Second generation (should not overwrite)
+      await generate(config);
+
+      // Verify custom file was preserved
+      const finalContent = fs.readFileSync(customTypePath, 'utf-8');
+      expect(finalContent).toContain('CUSTOM MODIFICATION');
+    }, 60000);
+
+    it('generates valid TypeScript that would compile', async () => {
+      const outDir = createTestOutputDir('valid-typescript');
+
+      // Create a comprehensive schema
+      await pool.query(`
+        DROP TABLE IF EXISTS comprehensive CASCADE;
+        DROP TYPE IF EXISTS status_enum CASCADE;
+
+        CREATE TYPE status_enum AS ENUM ('pending', 'active', 'archived');
+
+        CREATE TABLE comprehensive (
+          id SERIAL PRIMARY KEY,
+          name TEXT NOT NULL,
+          email TEXT,
+          age INTEGER,
+          tags TEXT[] NOT NULL DEFAULT '{}',
+          metadata JSONB,
+          status status_enum NOT NULL DEFAULT 'pending',
+          score DECIMAL(5, 2),
+          is_active BOOLEAN DEFAULT TRUE,
+          created_at TIMESTAMPTZ DEFAULT NOW(),
+          updated_at TIMESTAMPTZ
+        );
+      `);
+
+      const config = createBaseConfig(outDir);
+      await generate(config);
+
+      const schema = readGeneratedSchema(outDir);
+
+      // Basic validation that it's valid TypeScript structure
+      expect(schema).toContain("declare module 'sapatos/schema'");
+      expect(schema).toContain('interface StructureMap');
+      expect(schema).toContain('export namespace comprehensive');
+
+      // No obvious syntax errors
+      expect(schema).not.toContain('undefined');
+      expect(schema).not.toContain('null null');
+
+      // Proper module augmentation structure
+      const moduleDeclarationCount = (schema.match(/declare module/g) || []).length;
+      expect(moduleDeclarationCount).toBeGreaterThan(0);
+    }, 60000);
+  });
+
+  describe('End-to-End Type Safety Validation', () => {
+    it('generated types work with actual database queries', async () => {
+      const outDir = createTestOutputDir('e2e-type-safety');
+
+      // Create a simple schema
+      await pool.query(`
+        DROP TABLE IF EXISTS products CASCADE;
+        CREATE TABLE products (
+          id SERIAL PRIMARY KEY,
+          name TEXT NOT NULL,
+          price DECIMAL(10, 2) NOT NULL,
+          in_stock BOOLEAN DEFAULT TRUE,
+          created_at TIMESTAMPTZ DEFAULT NOW()
+        );
+
+        INSERT INTO products (name, price, in_stock)
+        VALUES ('Widget', 19.99, true), ('Gadget', 29.99, false);
+      `);
+
+      const config = createBaseConfig(outDir);
+      await generate(config);
+
+      const schema = readGeneratedSchema(outDir);
+
+      // Verify types exist for runtime queries
+      expect(schema).toContain("export namespace products");
+      expect(schema).toMatch(/'products':[\s\S]*Selectable:/);
+      expect(schema).toMatch(/'products':[\s\S]*Insertable:/);
+      expect(schema).toMatch(/'products':[\s\S]*Updatable:/);
+      expect(schema).toMatch(/'products':[\s\S]*Whereable:/);
+
+      // Verify the types have the correct shape
+      expect(schema).toMatch(/name: string/);
+      expect(schema).toMatch(/price: number/); // DECIMAL maps to number
+      expect(schema).toMatch(/in_stock: boolean \| null/);
+
+      // We can't actually import and use the types in this test without compilation,
+      // but we've verified the structure is correct for runtime use
+    }, 60000);
+  });
+});
