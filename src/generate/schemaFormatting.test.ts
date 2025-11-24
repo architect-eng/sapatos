@@ -4,6 +4,7 @@ import type { Relation, UniqueIndexRow } from './introspection';
 import {
   formatStructureMapEntry,
   formatNamespaceAlias,
+  formatSchemaNamespaces,
   formatSQLExpressionType,
   formatCrossTableTypes,
   formatCrossSchemaTypesForTables,
@@ -223,6 +224,118 @@ describe('schemaFormatting Module', () => {
       const data = createTestRelationData({ tableComment: '/** User account information */\n' });
       const result = formatNamespaceAlias(data);
       expect(result).toContain('/** User account information */');
+    });
+  });
+
+  describe('formatSchemaNamespaces', () => {
+    it('keeps unprefixed schema tables flat', () => {
+      const data = createTestRelationData({ schemaPrefix: '', schemaName: 'public' });
+      const result = formatSchemaNamespaces([data], 'public');
+      expect(result).toContain('export namespace users {');
+      expect(result).not.toContain('export namespace public {');
+      expect(result).toContain("StructureMap['users']");
+    });
+
+    it('nests non-default schema tables under schema namespace', () => {
+      const authData = createTestRelationData({
+        schemaPrefix: 'auth.',
+        schemaName: 'auth',
+        rel: { ...createMockRelation('users'), schema: 'auth', name: 'users' }
+      });
+      const result = formatSchemaNamespaces([authData], 'public');
+      expect(result).toContain('export namespace auth {');
+      expect(result).toContain('export namespace users {');
+      expect(result).toContain("StructureMap['auth.users']");
+    });
+
+    it('handles multiple schemas correctly', () => {
+      const publicData = createTestRelationData({
+        schemaPrefix: '',
+        schemaName: 'public',
+        rel: { ...createMockRelation('users'), schema: 'public', name: 'users' }
+      });
+      const authData = createTestRelationData({
+        schemaPrefix: 'auth.',
+        schemaName: 'auth',
+        rel: { ...createMockRelation('sessions'), schema: 'auth', name: 'sessions' }
+      });
+      const result = formatSchemaNamespaces([publicData, authData], 'public');
+
+      // Public schema table should be flat
+      expect(result).toContain('export namespace users {');
+      expect(result).not.toContain('export namespace public {');
+
+      // Auth schema should be nested
+      expect(result).toContain('export namespace auth {');
+      expect(result).toContain('export namespace sessions {');
+    });
+
+    it('handles multiple tables in same non-default schema', () => {
+      const authUsers = createTestRelationData({
+        schemaPrefix: 'auth.',
+        schemaName: 'auth',
+        rel: { ...createMockRelation('users'), schema: 'auth', name: 'users' }
+      });
+      const authSessions = createTestRelationData({
+        schemaPrefix: 'auth.',
+        schemaName: 'auth',
+        rel: { ...createMockRelation('sessions'), schema: 'auth', name: 'sessions' }
+      });
+      const result = formatSchemaNamespaces([authUsers, authSessions], 'public');
+
+      // Should have one auth namespace containing both tables
+      expect(result).toContain('export namespace auth {');
+      expect(result).toContain('export namespace users {');
+      expect(result).toContain('export namespace sessions {');
+
+      // Count occurrences of 'export namespace auth' - should be 1
+      const authNamespaceCount = (result.match(/export namespace auth \{/g) || []).length;
+      expect(authNamespaceCount).toBe(1);
+    });
+
+    it('handles null unprefixedSchema by nesting all schemas', () => {
+      const publicData = createTestRelationData({
+        schemaPrefix: 'public.',
+        schemaName: 'public',
+        rel: { ...createMockRelation('users'), schema: 'public', name: 'users' }
+      });
+      const result = formatSchemaNamespaces([publicData], null);
+
+      // All schemas should be nested when unprefixedSchema is null
+      expect(result).toContain('export namespace public {');
+      expect(result).toContain('export namespace users {');
+    });
+
+    it('includes all type exports in table namespaces', () => {
+      const data = createTestRelationData({
+        schemaPrefix: 'auth.',
+        schemaName: 'auth',
+        rel: { ...createMockRelation('users'), schema: 'auth', name: 'users' }
+      });
+      const result = formatSchemaNamespaces([data], 'public');
+
+      expect(result).toContain('export type Table =');
+      expect(result).toContain('export type Selectable =');
+      expect(result).toContain('export type JSONSelectable =');
+      expect(result).toContain('export type Whereable =');
+      expect(result).toContain('export type Insertable =');
+      expect(result).toContain('export type Updatable =');
+      expect(result).toContain('export type UniqueIndex =');
+      expect(result).toContain('export type Column =');
+      expect(result).toContain('export type OnlyCols<T extends readonly Column[]> =');
+      expect(result).toContain('export type SQLExpression =');
+      expect(result).toContain('export type SQL =');
+    });
+
+    it('preserves table comments in nested namespaces', () => {
+      const data = createTestRelationData({
+        schemaPrefix: 'auth.',
+        schemaName: 'auth',
+        rel: { ...createMockRelation('users'), schema: 'auth', name: 'users' },
+        tableComment: '/** Authentication users table */\n'
+      });
+      const result = formatSchemaNamespaces([data], 'public');
+      expect(result).toContain('/** Authentication users table */');
     });
   });
 

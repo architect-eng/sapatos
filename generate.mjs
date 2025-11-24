@@ -12,6 +12,7 @@ export const generate = mod.generate;
 export const moduleRoot = mod.moduleRoot;
 export const namespaceAliasForRelation = mod.namespaceAliasForRelation;
 export const relationsInSchema = mod.relationsInSchema;
+export const schemaNamespacesForAllRelations = mod.schemaNamespacesForAllRelations;
 export const sqlExpressionTypeForRelation = mod.sqlExpressionTypeForRelation;
 export const structureMapEntryForRelation = mod.structureMapEntryForRelation;
 export const tsForConfig = mod.tsForConfig;

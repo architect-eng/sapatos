@@ -737,1446 +737,1446 @@ describe('Type Generation - End-to-End Integration Tests', () => {
 
           /* --- StructureMap --- */
           interface StructureMap {
-              'another_included': {
-                Table: 'another_included';
-                Selectable: {
-                  /**
+            'another_included': {
+              Table: 'another_included';
+              Selectable: {
+                /**
               * **another_included.id**
               * - \`int4\` in database
               * - \`NOT NULL\`, default: \`nextval('another_included_id_seq'::regclass)\`
               */
               id: number;
-                };
-                JSONSelectable: {
-                  /**
+              };
+              JSONSelectable: {
+                /**
               * **another_included.id**
               * - \`int4\` in database
               * - \`NOT NULL\`, default: \`nextval('another_included_id_seq'::regclass)\`
               */
               id: number;
-                };
-                Whereable: {
-                  /**
+              };
+              Whereable: {
+                /**
               * **another_included.id**
               * - \`int4\` in database
               * - \`NOT NULL\`, default: \`nextval('another_included_id_seq'::regclass)\`
               */
               id?: number | db.Parameter<number> | db.SQLFragment | db.ParentColumn<any> | db.SQLFragment<any, number | db.Parameter<number> | db.SQLFragment | db.ParentColumn<any>>;
-                };
-                Insertable: {
-                  /**
+              };
+              Insertable: {
+                /**
               * **another_included.id**
               * - \`int4\` in database
               * - \`NOT NULL\`, default: \`nextval('another_included_id_seq'::regclass)\`
               */
               id?: number | db.Parameter<number> | db.DefaultType | db.SQLFragment;
-                };
-                Updatable: {
-                  /**
+              };
+              Updatable: {
+                /**
               * **another_included.id**
               * - \`int4\` in database
               * - \`NOT NULL\`, default: \`nextval('another_included_id_seq'::regclass)\`
               */
               id?: number | db.Parameter<number> | db.DefaultType | db.SQLFragment | db.SQLFragment<any, number | db.Parameter<number> | db.DefaultType | db.SQLFragment>;
-                };
-                UniqueIndex: 'another_included_pkey';
-                Column: id;
-                SQL: another_includedSQLExpression;
               };
-              'comprehensive': {
-                Table: 'comprehensive';
-                Selectable: {
-                  /**
+              UniqueIndex: 'another_included_pkey';
+              Column: id;
+              SQL: another_includedSQLExpression;
+            };
+            'comprehensive': {
+              Table: 'comprehensive';
+              Selectable: {
+                /**
               * **comprehensive.age**
               * - \`int4\` in database
               * - Nullable, no default
               */
               age: number | null;
-                  /**
+                /**
               * **comprehensive.created_at**
               * - \`timestamptz\` in database
               * - Nullable, default: \`now()\`
               */
               created_at: Date | null;
-                  /**
+                /**
               * **comprehensive.email**
               * - \`text\` in database
               * - Nullable, no default
               */
               email: string | null;
-                  /**
+                /**
               * **comprehensive.id**
               * - \`int4\` in database
               * - \`NOT NULL\`, default: \`nextval('comprehensive_id_seq'::regclass)\`
               */
               id: number;
-                  /**
+                /**
               * **comprehensive.is_active**
               * - \`bool\` in database
               * - Nullable, default: \`true\`
               */
               is_active: boolean | null;
-                  /**
+                /**
               * **comprehensive.metadata**
               * - \`jsonb\` in database
               * - Nullable, no default
               */
               metadata: db.JSONValue | null;
-                  /**
+                /**
               * **comprehensive.name**
               * - \`text\` in database
               * - \`NOT NULL\`, no default
               */
               name: string;
-                  /**
+                /**
               * **comprehensive.score**
               * - \`numeric\` in database
               * - Nullable, no default
               */
               score: db.NumericString | null;
-                  /**
+                /**
               * **comprehensive.status**
               * - \`status_enum\` in database
               * - \`NOT NULL\`, default: \`'pending'::status_enum\`
               */
               status: status_enum;
-                  /**
+                /**
               * **comprehensive.tags**
               * - \`_text\` in database
               * - \`NOT NULL\`, default: \`'{}'::text[]\`
               */
               tags: string[];
-                  /**
+                /**
               * **comprehensive.updated_at**
               * - \`timestamptz\` in database
               * - Nullable, no default
               */
               updated_at: Date | null;
-                };
-                JSONSelectable: {
-                  /**
+              };
+              JSONSelectable: {
+                /**
               * **comprehensive.age**
               * - \`int4\` in database
               * - Nullable, no default
               */
               age: number | null;
-                  /**
+                /**
               * **comprehensive.created_at**
               * - \`timestamptz\` in database
               * - Nullable, default: \`now()\`
               */
               created_at: db.TimestampTzString | null;
-                  /**
+                /**
               * **comprehensive.email**
               * - \`text\` in database
               * - Nullable, no default
               */
               email: string | null;
-                  /**
+                /**
               * **comprehensive.id**
               * - \`int4\` in database
               * - \`NOT NULL\`, default: \`nextval('comprehensive_id_seq'::regclass)\`
               */
               id: number;
-                  /**
+                /**
               * **comprehensive.is_active**
               * - \`bool\` in database
               * - Nullable, default: \`true\`
               */
               is_active: boolean | null;
-                  /**
+                /**
               * **comprehensive.metadata**
               * - \`jsonb\` in database
               * - Nullable, no default
               */
               metadata: db.JSONValue | null;
-                  /**
+                /**
               * **comprehensive.name**
               * - \`text\` in database
               * - \`NOT NULL\`, no default
               */
               name: string;
-                  /**
+                /**
               * **comprehensive.score**
               * - \`numeric\` in database
               * - Nullable, no default
               */
               score: number | null;
-                  /**
+                /**
               * **comprehensive.status**
               * - \`status_enum\` in database
               * - \`NOT NULL\`, default: \`'pending'::status_enum\`
               */
               status: status_enum;
-                  /**
+                /**
               * **comprehensive.tags**
               * - \`_text\` in database
               * - \`NOT NULL\`, default: \`'{}'::text[]\`
               */
               tags: string[];
-                  /**
+                /**
               * **comprehensive.updated_at**
               * - \`timestamptz\` in database
               * - Nullable, no default
               */
               updated_at: db.TimestampTzString | null;
-                };
-                Whereable: {
-                  /**
+              };
+              Whereable: {
+                /**
               * **comprehensive.age**
               * - \`int4\` in database
               * - Nullable, no default
               */
               age?: number | db.Parameter<number> | db.SQLFragment | db.ParentColumn<any> | db.SQLFragment<any, number | db.Parameter<number> | db.SQLFragment | db.ParentColumn<any>>;
-                  /**
+                /**
               * **comprehensive.created_at**
               * - \`timestamptz\` in database
               * - Nullable, default: \`now()\`
               */
               created_at?: (db.TimestampTzString | Date) | db.Parameter<(db.TimestampTzString | Date)> | db.SQLFragment | db.ParentColumn<any> | db.SQLFragment<any, (db.TimestampTzString | Date) | db.Parameter<(db.TimestampTzString | Date)> | db.SQLFragment | db.ParentColumn<any>>;
-                  /**
+                /**
               * **comprehensive.email**
               * - \`text\` in database
               * - Nullable, no default
               */
               email?: string | db.Parameter<string> | db.SQLFragment | db.ParentColumn<any> | db.SQLFragment<any, string | db.Parameter<string> | db.SQLFragment | db.ParentColumn<any>>;
-                  /**
+                /**
               * **comprehensive.id**
               * - \`int4\` in database
               * - \`NOT NULL\`, default: \`nextval('comprehensive_id_seq'::regclass)\`
               */
               id?: number | db.Parameter<number> | db.SQLFragment | db.ParentColumn<any> | db.SQLFragment<any, number | db.Parameter<number> | db.SQLFragment | db.ParentColumn<any>>;
-                  /**
+                /**
               * **comprehensive.is_active**
               * - \`bool\` in database
               * - Nullable, default: \`true\`
               */
               is_active?: boolean | db.Parameter<boolean> | db.SQLFragment | db.ParentColumn<any> | db.SQLFragment<any, boolean | db.Parameter<boolean> | db.SQLFragment | db.ParentColumn<any>>;
-                  /**
+                /**
               * **comprehensive.metadata**
               * - \`jsonb\` in database
               * - Nullable, no default
               */
               metadata?: db.JSONValue | db.Parameter<db.JSONValue> | db.SQLFragment | db.ParentColumn<any> | db.SQLFragment<any, db.JSONValue | db.Parameter<db.JSONValue> | db.SQLFragment | db.ParentColumn<any>>;
-                  /**
+                /**
               * **comprehensive.name**
               * - \`text\` in database
               * - \`NOT NULL\`, no default
               */
               name?: string | db.Parameter<string> | db.SQLFragment | db.ParentColumn<any> | db.SQLFragment<any, string | db.Parameter<string> | db.SQLFragment | db.ParentColumn<any>>;
-                  /**
+                /**
               * **comprehensive.score**
               * - \`numeric\` in database
               * - Nullable, no default
               */
               score?: (number | db.NumericString) | db.Parameter<(number | db.NumericString)> | db.SQLFragment | db.ParentColumn<any> | db.SQLFragment<any, (number | db.NumericString) | db.Parameter<(number | db.NumericString)> | db.SQLFragment | db.ParentColumn<any>>;
-                  /**
+                /**
               * **comprehensive.status**
               * - \`status_enum\` in database
               * - \`NOT NULL\`, default: \`'pending'::status_enum\`
               */
               status?: status_enum | db.Parameter<status_enum> | db.SQLFragment | db.ParentColumn<any> | db.SQLFragment<any, status_enum | db.Parameter<status_enum> | db.SQLFragment | db.ParentColumn<any>>;
-                  /**
+                /**
               * **comprehensive.tags**
               * - \`_text\` in database
               * - \`NOT NULL\`, default: \`'{}'::text[]\`
               */
               tags?: string[] | db.Parameter<string[]> | db.SQLFragment | db.ParentColumn<any> | db.SQLFragment<any, string[] | db.Parameter<string[]> | db.SQLFragment | db.ParentColumn<any>>;
-                  /**
+                /**
               * **comprehensive.updated_at**
               * - \`timestamptz\` in database
               * - Nullable, no default
               */
               updated_at?: (db.TimestampTzString | Date) | db.Parameter<(db.TimestampTzString | Date)> | db.SQLFragment | db.ParentColumn<any> | db.SQLFragment<any, (db.TimestampTzString | Date) | db.Parameter<(db.TimestampTzString | Date)> | db.SQLFragment | db.ParentColumn<any>>;
-                };
-                Insertable: {
-                  /**
+              };
+              Insertable: {
+                /**
               * **comprehensive.age**
               * - \`int4\` in database
               * - Nullable, no default
               */
               age?: number | db.Parameter<number> | null | db.DefaultType | db.SQLFragment;
-                  /**
+                /**
               * **comprehensive.created_at**
               * - \`timestamptz\` in database
               * - Nullable, default: \`now()\`
               */
               created_at?: (db.TimestampTzString | Date) | db.Parameter<(db.TimestampTzString | Date)> | null | db.DefaultType | db.SQLFragment;
-                  /**
+                /**
               * **comprehensive.email**
               * - \`text\` in database
               * - Nullable, no default
               */
               email?: string | db.Parameter<string> | null | db.DefaultType | db.SQLFragment;
-                  /**
+                /**
               * **comprehensive.id**
               * - \`int4\` in database
               * - \`NOT NULL\`, default: \`nextval('comprehensive_id_seq'::regclass)\`
               */
               id?: number | db.Parameter<number> | db.DefaultType | db.SQLFragment;
-                  /**
+                /**
               * **comprehensive.is_active**
               * - \`bool\` in database
               * - Nullable, default: \`true\`
               */
               is_active?: boolean | db.Parameter<boolean> | null | db.DefaultType | db.SQLFragment;
-                  /**
+                /**
               * **comprehensive.metadata**
               * - \`jsonb\` in database
               * - Nullable, no default
               */
               metadata?: db.JSONValue | db.Parameter<db.JSONValue> | null | db.DefaultType | db.SQLFragment;
-                  /**
+                /**
               * **comprehensive.name**
               * - \`text\` in database
               * - \`NOT NULL\`, no default
               */
               name: string | db.Parameter<string> | db.SQLFragment;
-                  /**
+                /**
               * **comprehensive.score**
               * - \`numeric\` in database
               * - Nullable, no default
               */
               score?: (number | db.NumericString) | db.Parameter<(number | db.NumericString)> | null | db.DefaultType | db.SQLFragment;
-                  /**
+                /**
               * **comprehensive.status**
               * - \`status_enum\` in database
               * - \`NOT NULL\`, default: \`'pending'::status_enum\`
               */
               status?: status_enum | db.Parameter<status_enum> | db.DefaultType | db.SQLFragment;
-                  /**
+                /**
               * **comprehensive.tags**
               * - \`_text\` in database
               * - \`NOT NULL\`, default: \`'{}'::text[]\`
               */
               tags?: string[] | db.Parameter<string[]> | db.DefaultType | db.SQLFragment;
-                  /**
+                /**
               * **comprehensive.updated_at**
               * - \`timestamptz\` in database
               * - Nullable, no default
               */
               updated_at?: (db.TimestampTzString | Date) | db.Parameter<(db.TimestampTzString | Date)> | null | db.DefaultType | db.SQLFragment;
-                };
-                Updatable: {
-                  /**
+              };
+              Updatable: {
+                /**
               * **comprehensive.age**
               * - \`int4\` in database
               * - Nullable, no default
               */
               age?: number | db.Parameter<number> | null | db.DefaultType | db.SQLFragment | db.SQLFragment<any, number | db.Parameter<number> | null | db.DefaultType | db.SQLFragment>;
-                  /**
+                /**
               * **comprehensive.created_at**
               * - \`timestamptz\` in database
               * - Nullable, default: \`now()\`
               */
               created_at?: (db.TimestampTzString | Date) | db.Parameter<(db.TimestampTzString | Date)> | null | db.DefaultType | db.SQLFragment | db.SQLFragment<any, (db.TimestampTzString | Date) | db.Parameter<(db.TimestampTzString | Date)> | null | db.DefaultType | db.SQLFragment>;
-                  /**
+                /**
               * **comprehensive.email**
               * - \`text\` in database
               * - Nullable, no default
               */
               email?: string | db.Parameter<string> | null | db.DefaultType | db.SQLFragment | db.SQLFragment<any, string | db.Parameter<string> | null | db.DefaultType | db.SQLFragment>;
-                  /**
+                /**
               * **comprehensive.id**
               * - \`int4\` in database
               * - \`NOT NULL\`, default: \`nextval('comprehensive_id_seq'::regclass)\`
               */
               id?: number | db.Parameter<number> | db.DefaultType | db.SQLFragment | db.SQLFragment<any, number | db.Parameter<number> | db.DefaultType | db.SQLFragment>;
-                  /**
+                /**
               * **comprehensive.is_active**
               * - \`bool\` in database
               * - Nullable, default: \`true\`
               */
               is_active?: boolean | db.Parameter<boolean> | null | db.DefaultType | db.SQLFragment | db.SQLFragment<any, boolean | db.Parameter<boolean> | null | db.DefaultType | db.SQLFragment>;
-                  /**
+                /**
               * **comprehensive.metadata**
               * - \`jsonb\` in database
               * - Nullable, no default
               */
               metadata?: db.JSONValue | db.Parameter<db.JSONValue> | null | db.DefaultType | db.SQLFragment | db.SQLFragment<any, db.JSONValue | db.Parameter<db.JSONValue> | null | db.DefaultType | db.SQLFragment>;
-                  /**
+                /**
               * **comprehensive.name**
               * - \`text\` in database
               * - \`NOT NULL\`, no default
               */
               name?: string | db.Parameter<string> | db.SQLFragment | db.SQLFragment<any, string | db.Parameter<string> | db.SQLFragment>;
-                  /**
+                /**
               * **comprehensive.score**
               * - \`numeric\` in database
               * - Nullable, no default
               */
               score?: (number | db.NumericString) | db.Parameter<(number | db.NumericString)> | null | db.DefaultType | db.SQLFragment | db.SQLFragment<any, (number | db.NumericString) | db.Parameter<(number | db.NumericString)> | null | db.DefaultType | db.SQLFragment>;
-                  /**
+                /**
               * **comprehensive.status**
               * - \`status_enum\` in database
               * - \`NOT NULL\`, default: \`'pending'::status_enum\`
               */
               status?: status_enum | db.Parameter<status_enum> | db.DefaultType | db.SQLFragment | db.SQLFragment<any, status_enum | db.Parameter<status_enum> | db.DefaultType | db.SQLFragment>;
-                  /**
+                /**
               * **comprehensive.tags**
               * - \`_text\` in database
               * - \`NOT NULL\`, default: \`'{}'::text[]\`
               */
               tags?: string[] | db.Parameter<string[]> | db.DefaultType | db.SQLFragment | db.SQLFragment<any, string[] | db.Parameter<string[]> | db.DefaultType | db.SQLFragment>;
-                  /**
+                /**
               * **comprehensive.updated_at**
               * - \`timestamptz\` in database
               * - Nullable, no default
               */
               updated_at?: (db.TimestampTzString | Date) | db.Parameter<(db.TimestampTzString | Date)> | null | db.DefaultType | db.SQLFragment | db.SQLFragment<any, (db.TimestampTzString | Date) | db.Parameter<(db.TimestampTzString | Date)> | null | db.DefaultType | db.SQLFragment>;
-                };
-                UniqueIndex: 'comprehensive_pkey';
-                Column: age | created_at | email | id | is_active | metadata | name | score | status | tags | updated_at;
-                SQL: comprehensiveSQLExpression;
               };
-              'excluded_table': {
-                Table: 'excluded_table';
-                Selectable: {
-                  /**
+              UniqueIndex: 'comprehensive_pkey';
+              Column: age | created_at | email | id | is_active | metadata | name | score | status | tags | updated_at;
+              SQL: comprehensiveSQLExpression;
+            };
+            'excluded_table': {
+              Table: 'excluded_table';
+              Selectable: {
+                /**
               * **excluded_table.id**
               * - \`int4\` in database
               * - \`NOT NULL\`, default: \`nextval('excluded_table_id_seq'::regclass)\`
               */
               id: number;
-                };
-                JSONSelectable: {
-                  /**
+              };
+              JSONSelectable: {
+                /**
               * **excluded_table.id**
               * - \`int4\` in database
               * - \`NOT NULL\`, default: \`nextval('excluded_table_id_seq'::regclass)\`
               */
               id: number;
-                };
-                Whereable: {
-                  /**
+              };
+              Whereable: {
+                /**
               * **excluded_table.id**
               * - \`int4\` in database
               * - \`NOT NULL\`, default: \`nextval('excluded_table_id_seq'::regclass)\`
               */
               id?: number | db.Parameter<number> | db.SQLFragment | db.ParentColumn<any> | db.SQLFragment<any, number | db.Parameter<number> | db.SQLFragment | db.ParentColumn<any>>;
-                };
-                Insertable: {
-                  /**
+              };
+              Insertable: {
+                /**
               * **excluded_table.id**
               * - \`int4\` in database
               * - \`NOT NULL\`, default: \`nextval('excluded_table_id_seq'::regclass)\`
               */
               id?: number | db.Parameter<number> | db.DefaultType | db.SQLFragment;
-                };
-                Updatable: {
-                  /**
+              };
+              Updatable: {
+                /**
               * **excluded_table.id**
               * - \`int4\` in database
               * - \`NOT NULL\`, default: \`nextval('excluded_table_id_seq'::regclass)\`
               */
               id?: number | db.Parameter<number> | db.DefaultType | db.SQLFragment | db.SQLFragment<any, number | db.Parameter<number> | db.DefaultType | db.SQLFragment>;
-                };
-                UniqueIndex: 'excluded_table_pkey';
-                Column: id;
-                SQL: excluded_tableSQLExpression;
               };
-              'included_table': {
-                Table: 'included_table';
-                Selectable: {
-                  /**
+              UniqueIndex: 'excluded_table_pkey';
+              Column: id;
+              SQL: excluded_tableSQLExpression;
+            };
+            'included_table': {
+              Table: 'included_table';
+              Selectable: {
+                /**
               * **included_table.id**
               * - \`int4\` in database
               * - \`NOT NULL\`, default: \`nextval('included_table_id_seq'::regclass)\`
               */
               id: number;
-                };
-                JSONSelectable: {
-                  /**
+              };
+              JSONSelectable: {
+                /**
               * **included_table.id**
               * - \`int4\` in database
               * - \`NOT NULL\`, default: \`nextval('included_table_id_seq'::regclass)\`
               */
               id: number;
-                };
-                Whereable: {
-                  /**
+              };
+              Whereable: {
+                /**
               * **included_table.id**
               * - \`int4\` in database
               * - \`NOT NULL\`, default: \`nextval('included_table_id_seq'::regclass)\`
               */
               id?: number | db.Parameter<number> | db.SQLFragment | db.ParentColumn<any> | db.SQLFragment<any, number | db.Parameter<number> | db.SQLFragment | db.ParentColumn<any>>;
-                };
-                Insertable: {
-                  /**
+              };
+              Insertable: {
+                /**
               * **included_table.id**
               * - \`int4\` in database
               * - \`NOT NULL\`, default: \`nextval('included_table_id_seq'::regclass)\`
               */
               id?: number | db.Parameter<number> | db.DefaultType | db.SQLFragment;
-                };
-                Updatable: {
-                  /**
+              };
+              Updatable: {
+                /**
               * **included_table.id**
               * - \`int4\` in database
               * - \`NOT NULL\`, default: \`nextval('included_table_id_seq'::regclass)\`
               */
               id?: number | db.Parameter<number> | db.DefaultType | db.SQLFragment | db.SQLFragment<any, number | db.Parameter<number> | db.DefaultType | db.SQLFragment>;
-                };
-                UniqueIndex: 'included_table_pkey';
-                Column: id;
-                SQL: included_tableSQLExpression;
               };
-              'products': {
-                Table: 'products';
-                Selectable: {
-                  /**
+              UniqueIndex: 'included_table_pkey';
+              Column: id;
+              SQL: included_tableSQLExpression;
+            };
+            'products': {
+              Table: 'products';
+              Selectable: {
+                /**
               * **products.created_at**
               * - \`timestamptz\` in database
               * - Nullable, default: \`now()\`
               */
               created_at: Date | null;
-                  /**
+                /**
               * **products.id**
               * - \`int4\` in database
               * - \`NOT NULL\`, default: \`nextval('products_id_seq'::regclass)\`
               */
               id: number;
-                  /**
+                /**
               * **products.in_stock**
               * - \`bool\` in database
               * - Nullable, default: \`true\`
               */
               in_stock: boolean | null;
-                  /**
+                /**
               * **products.name**
               * - \`text\` in database
               * - \`NOT NULL\`, no default
               */
               name: string;
-                  /**
+                /**
               * **products.price**
               * - \`numeric\` in database
               * - \`NOT NULL\`, no default
               */
               price: db.NumericString;
-                };
-                JSONSelectable: {
-                  /**
+              };
+              JSONSelectable: {
+                /**
               * **products.created_at**
               * - \`timestamptz\` in database
               * - Nullable, default: \`now()\`
               */
               created_at: db.TimestampTzString | null;
-                  /**
+                /**
               * **products.id**
               * - \`int4\` in database
               * - \`NOT NULL\`, default: \`nextval('products_id_seq'::regclass)\`
               */
               id: number;
-                  /**
+                /**
               * **products.in_stock**
               * - \`bool\` in database
               * - Nullable, default: \`true\`
               */
               in_stock: boolean | null;
-                  /**
+                /**
               * **products.name**
               * - \`text\` in database
               * - \`NOT NULL\`, no default
               */
               name: string;
-                  /**
+                /**
               * **products.price**
               * - \`numeric\` in database
               * - \`NOT NULL\`, no default
               */
               price: number;
-                };
-                Whereable: {
-                  /**
+              };
+              Whereable: {
+                /**
               * **products.created_at**
               * - \`timestamptz\` in database
               * - Nullable, default: \`now()\`
               */
               created_at?: (db.TimestampTzString | Date) | db.Parameter<(db.TimestampTzString | Date)> | db.SQLFragment | db.ParentColumn<any> | db.SQLFragment<any, (db.TimestampTzString | Date) | db.Parameter<(db.TimestampTzString | Date)> | db.SQLFragment | db.ParentColumn<any>>;
-                  /**
+                /**
               * **products.id**
               * - \`int4\` in database
               * - \`NOT NULL\`, default: \`nextval('products_id_seq'::regclass)\`
               */
               id?: number | db.Parameter<number> | db.SQLFragment | db.ParentColumn<any> | db.SQLFragment<any, number | db.Parameter<number> | db.SQLFragment | db.ParentColumn<any>>;
-                  /**
+                /**
               * **products.in_stock**
               * - \`bool\` in database
               * - Nullable, default: \`true\`
               */
               in_stock?: boolean | db.Parameter<boolean> | db.SQLFragment | db.ParentColumn<any> | db.SQLFragment<any, boolean | db.Parameter<boolean> | db.SQLFragment | db.ParentColumn<any>>;
-                  /**
+                /**
               * **products.name**
               * - \`text\` in database
               * - \`NOT NULL\`, no default
               */
               name?: string | db.Parameter<string> | db.SQLFragment | db.ParentColumn<any> | db.SQLFragment<any, string | db.Parameter<string> | db.SQLFragment | db.ParentColumn<any>>;
-                  /**
+                /**
               * **products.price**
               * - \`numeric\` in database
               * - \`NOT NULL\`, no default
               */
               price?: (number | db.NumericString) | db.Parameter<(number | db.NumericString)> | db.SQLFragment | db.ParentColumn<any> | db.SQLFragment<any, (number | db.NumericString) | db.Parameter<(number | db.NumericString)> | db.SQLFragment | db.ParentColumn<any>>;
-                };
-                Insertable: {
-                  /**
+              };
+              Insertable: {
+                /**
               * **products.created_at**
               * - \`timestamptz\` in database
               * - Nullable, default: \`now()\`
               */
               created_at?: (db.TimestampTzString | Date) | db.Parameter<(db.TimestampTzString | Date)> | null | db.DefaultType | db.SQLFragment;
-                  /**
+                /**
               * **products.id**
               * - \`int4\` in database
               * - \`NOT NULL\`, default: \`nextval('products_id_seq'::regclass)\`
               */
               id?: number | db.Parameter<number> | db.DefaultType | db.SQLFragment;
-                  /**
+                /**
               * **products.in_stock**
               * - \`bool\` in database
               * - Nullable, default: \`true\`
               */
               in_stock?: boolean | db.Parameter<boolean> | null | db.DefaultType | db.SQLFragment;
-                  /**
+                /**
               * **products.name**
               * - \`text\` in database
               * - \`NOT NULL\`, no default
               */
               name: string | db.Parameter<string> | db.SQLFragment;
-                  /**
+                /**
               * **products.price**
               * - \`numeric\` in database
               * - \`NOT NULL\`, no default
               */
               price: (number | db.NumericString) | db.Parameter<(number | db.NumericString)> | db.SQLFragment;
-                };
-                Updatable: {
-                  /**
+              };
+              Updatable: {
+                /**
               * **products.created_at**
               * - \`timestamptz\` in database
               * - Nullable, default: \`now()\`
               */
               created_at?: (db.TimestampTzString | Date) | db.Parameter<(db.TimestampTzString | Date)> | null | db.DefaultType | db.SQLFragment | db.SQLFragment<any, (db.TimestampTzString | Date) | db.Parameter<(db.TimestampTzString | Date)> | null | db.DefaultType | db.SQLFragment>;
-                  /**
+                /**
               * **products.id**
               * - \`int4\` in database
               * - \`NOT NULL\`, default: \`nextval('products_id_seq'::regclass)\`
               */
               id?: number | db.Parameter<number> | db.DefaultType | db.SQLFragment | db.SQLFragment<any, number | db.Parameter<number> | db.DefaultType | db.SQLFragment>;
-                  /**
+                /**
               * **products.in_stock**
               * - \`bool\` in database
               * - Nullable, default: \`true\`
               */
               in_stock?: boolean | db.Parameter<boolean> | null | db.DefaultType | db.SQLFragment | db.SQLFragment<any, boolean | db.Parameter<boolean> | null | db.DefaultType | db.SQLFragment>;
-                  /**
+                /**
               * **products.name**
               * - \`text\` in database
               * - \`NOT NULL\`, no default
               */
               name?: string | db.Parameter<string> | db.SQLFragment | db.SQLFragment<any, string | db.Parameter<string> | db.SQLFragment>;
-                  /**
+                /**
               * **products.price**
               * - \`numeric\` in database
               * - \`NOT NULL\`, no default
               */
               price?: (number | db.NumericString) | db.Parameter<(number | db.NumericString)> | db.SQLFragment | db.SQLFragment<any, (number | db.NumericString) | db.Parameter<(number | db.NumericString)> | db.SQLFragment>;
-                };
-                UniqueIndex: 'products_pkey';
-                Column: created_at | id | in_stock | name | price;
-                SQL: productsSQLExpression;
               };
-              'some_table': {
-                Table: 'some_table';
-                Selectable: {
-                  /**
+              UniqueIndex: 'products_pkey';
+              Column: created_at | id | in_stock | name | price;
+              SQL: productsSQLExpression;
+            };
+            'some_table': {
+              Table: 'some_table';
+              Selectable: {
+                /**
               * **some_table.id**
               * - \`int4\` in database
               * - \`NOT NULL\`, default: \`nextval('some_table_id_seq'::regclass)\`
               */
               id: number;
-                };
-                JSONSelectable: {
-                  /**
+              };
+              JSONSelectable: {
+                /**
               * **some_table.id**
               * - \`int4\` in database
               * - \`NOT NULL\`, default: \`nextval('some_table_id_seq'::regclass)\`
               */
               id: number;
-                };
-                Whereable: {
-                  /**
+              };
+              Whereable: {
+                /**
               * **some_table.id**
               * - \`int4\` in database
               * - \`NOT NULL\`, default: \`nextval('some_table_id_seq'::regclass)\`
               */
               id?: number | db.Parameter<number> | db.SQLFragment | db.ParentColumn<any> | db.SQLFragment<any, number | db.Parameter<number> | db.SQLFragment | db.ParentColumn<any>>;
-                };
-                Insertable: {
-                  /**
+              };
+              Insertable: {
+                /**
               * **some_table.id**
               * - \`int4\` in database
               * - \`NOT NULL\`, default: \`nextval('some_table_id_seq'::regclass)\`
               */
               id?: number | db.Parameter<number> | db.DefaultType | db.SQLFragment;
-                };
-                Updatable: {
-                  /**
+              };
+              Updatable: {
+                /**
               * **some_table.id**
               * - \`int4\` in database
               * - \`NOT NULL\`, default: \`nextval('some_table_id_seq'::regclass)\`
               */
               id?: number | db.Parameter<number> | db.DefaultType | db.SQLFragment | db.SQLFragment<any, number | db.Parameter<number> | db.DefaultType | db.SQLFragment>;
-                };
-                UniqueIndex: 'some_table_pkey';
-                Column: id;
-                SQL: some_tableSQLExpression;
               };
-              'test': {
-                Table: 'test';
-                Selectable: {
-                  /**
+              UniqueIndex: 'some_table_pkey';
+              Column: id;
+              SQL: some_tableSQLExpression;
+            };
+            'test': {
+              Table: 'test';
+              Selectable: {
+                /**
               * **test.id**
               * - \`int4\` in database
               * - \`NOT NULL\`, default: \`nextval('test_id_seq'::regclass)\`
               */
               id: number;
-                  /**
+                /**
               * **test.value**
               * - \`my_custom\` (base type: \`text\`) in database
               * - Nullable, no default
               */
               value: c.PgMy_custom | null;
-                };
-                JSONSelectable: {
-                  /**
+              };
+              JSONSelectable: {
+                /**
               * **test.id**
               * - \`int4\` in database
               * - \`NOT NULL\`, default: \`nextval('test_id_seq'::regclass)\`
               */
               id: number;
-                  /**
+                /**
               * **test.value**
               * - \`my_custom\` (base type: \`text\`) in database
               * - Nullable, no default
               */
               value: c.PgMy_custom | null;
-                };
-                Whereable: {
-                  /**
+              };
+              Whereable: {
+                /**
               * **test.id**
               * - \`int4\` in database
               * - \`NOT NULL\`, default: \`nextval('test_id_seq'::regclass)\`
               */
               id?: number | db.Parameter<number> | db.SQLFragment | db.ParentColumn<any> | db.SQLFragment<any, number | db.Parameter<number> | db.SQLFragment | db.ParentColumn<any>>;
-                  /**
+                /**
               * **test.value**
               * - \`my_custom\` (base type: \`text\`) in database
               * - Nullable, no default
               */
               value?: c.PgMy_custom | db.Parameter<c.PgMy_custom> | db.SQLFragment | db.ParentColumn<any> | db.SQLFragment<any, c.PgMy_custom | db.Parameter<c.PgMy_custom> | db.SQLFragment | db.ParentColumn<any>>;
-                };
-                Insertable: {
-                  /**
+              };
+              Insertable: {
+                /**
               * **test.id**
               * - \`int4\` in database
               * - \`NOT NULL\`, default: \`nextval('test_id_seq'::regclass)\`
               */
               id?: number | db.Parameter<number> | db.DefaultType | db.SQLFragment;
-                  /**
+                /**
               * **test.value**
               * - \`my_custom\` (base type: \`text\`) in database
               * - Nullable, no default
               */
               value?: c.PgMy_custom | db.Parameter<c.PgMy_custom> | null | db.DefaultType | db.SQLFragment;
-                };
-                Updatable: {
-                  /**
+              };
+              Updatable: {
+                /**
               * **test.id**
               * - \`int4\` in database
               * - \`NOT NULL\`, default: \`nextval('test_id_seq'::regclass)\`
               */
               id?: number | db.Parameter<number> | db.DefaultType | db.SQLFragment | db.SQLFragment<any, number | db.Parameter<number> | db.DefaultType | db.SQLFragment>;
-                  /**
+                /**
               * **test.value**
               * - \`my_custom\` (base type: \`text\`) in database
               * - Nullable, no default
               */
               value?: c.PgMy_custom | db.Parameter<c.PgMy_custom> | null | db.DefaultType | db.SQLFragment | db.SQLFragment<any, c.PgMy_custom | db.Parameter<c.PgMy_custom> | null | db.DefaultType | db.SQLFragment>;
-                };
-                UniqueIndex: 'test_pkey';
-                Column: id | value;
-                SQL: testSQLExpression;
               };
-              'test_arrays': {
-                Table: 'test_arrays';
-                Selectable: {
-                  /**
+              UniqueIndex: 'test_pkey';
+              Column: id | value;
+              SQL: testSQLExpression;
+            };
+            'test_arrays': {
+              Table: 'test_arrays';
+              Selectable: {
+                /**
               * **test_arrays.id**
               * - \`int4\` in database
               * - \`NOT NULL\`, default: \`nextval('test_arrays_id_seq'::regclass)\`
               */
               id: number;
-                  /**
+                /**
               * **test_arrays.matrix**
               * - \`_int4\` in database
               * - Nullable, no default
               */
               matrix: number[] | null;
-                  /**
+                /**
               * **test_arrays.numbers**
               * - \`_int4\` in database
               * - Nullable, no default
               */
               numbers: number[] | null;
-                  /**
+                /**
               * **test_arrays.tags**
               * - \`_text\` in database
               * - \`NOT NULL\`, no default
               */
               tags: string[];
-                };
-                JSONSelectable: {
-                  /**
+              };
+              JSONSelectable: {
+                /**
               * **test_arrays.id**
               * - \`int4\` in database
               * - \`NOT NULL\`, default: \`nextval('test_arrays_id_seq'::regclass)\`
               */
               id: number;
-                  /**
+                /**
               * **test_arrays.matrix**
               * - \`_int4\` in database
               * - Nullable, no default
               */
               matrix: number[] | null;
-                  /**
+                /**
               * **test_arrays.numbers**
               * - \`_int4\` in database
               * - Nullable, no default
               */
               numbers: number[] | null;
-                  /**
+                /**
               * **test_arrays.tags**
               * - \`_text\` in database
               * - \`NOT NULL\`, no default
               */
               tags: string[];
-                };
-                Whereable: {
-                  /**
+              };
+              Whereable: {
+                /**
               * **test_arrays.id**
               * - \`int4\` in database
               * - \`NOT NULL\`, default: \`nextval('test_arrays_id_seq'::regclass)\`
               */
               id?: number | db.Parameter<number> | db.SQLFragment | db.ParentColumn<any> | db.SQLFragment<any, number | db.Parameter<number> | db.SQLFragment | db.ParentColumn<any>>;
-                  /**
+                /**
               * **test_arrays.matrix**
               * - \`_int4\` in database
               * - Nullable, no default
               */
               matrix?: number[] | db.Parameter<number[]> | db.SQLFragment | db.ParentColumn<any> | db.SQLFragment<any, number[] | db.Parameter<number[]> | db.SQLFragment | db.ParentColumn<any>>;
-                  /**
+                /**
               * **test_arrays.numbers**
               * - \`_int4\` in database
               * - Nullable, no default
               */
               numbers?: number[] | db.Parameter<number[]> | db.SQLFragment | db.ParentColumn<any> | db.SQLFragment<any, number[] | db.Parameter<number[]> | db.SQLFragment | db.ParentColumn<any>>;
-                  /**
+                /**
               * **test_arrays.tags**
               * - \`_text\` in database
               * - \`NOT NULL\`, no default
               */
               tags?: string[] | db.Parameter<string[]> | db.SQLFragment | db.ParentColumn<any> | db.SQLFragment<any, string[] | db.Parameter<string[]> | db.SQLFragment | db.ParentColumn<any>>;
-                };
-                Insertable: {
-                  /**
+              };
+              Insertable: {
+                /**
               * **test_arrays.id**
               * - \`int4\` in database
               * - \`NOT NULL\`, default: \`nextval('test_arrays_id_seq'::regclass)\`
               */
               id?: number | db.Parameter<number> | db.DefaultType | db.SQLFragment;
-                  /**
+                /**
               * **test_arrays.matrix**
               * - \`_int4\` in database
               * - Nullable, no default
               */
               matrix?: number[] | db.Parameter<number[]> | null | db.DefaultType | db.SQLFragment;
-                  /**
+                /**
               * **test_arrays.numbers**
               * - \`_int4\` in database
               * - Nullable, no default
               */
               numbers?: number[] | db.Parameter<number[]> | null | db.DefaultType | db.SQLFragment;
-                  /**
+                /**
               * **test_arrays.tags**
               * - \`_text\` in database
               * - \`NOT NULL\`, no default
               */
               tags: string[] | db.Parameter<string[]> | db.SQLFragment;
-                };
-                Updatable: {
-                  /**
+              };
+              Updatable: {
+                /**
               * **test_arrays.id**
               * - \`int4\` in database
               * - \`NOT NULL\`, default: \`nextval('test_arrays_id_seq'::regclass)\`
               */
               id?: number | db.Parameter<number> | db.DefaultType | db.SQLFragment | db.SQLFragment<any, number | db.Parameter<number> | db.DefaultType | db.SQLFragment>;
-                  /**
+                /**
               * **test_arrays.matrix**
               * - \`_int4\` in database
               * - Nullable, no default
               */
               matrix?: number[] | db.Parameter<number[]> | null | db.DefaultType | db.SQLFragment | db.SQLFragment<any, number[] | db.Parameter<number[]> | null | db.DefaultType | db.SQLFragment>;
-                  /**
+                /**
               * **test_arrays.numbers**
               * - \`_int4\` in database
               * - Nullable, no default
               */
               numbers?: number[] | db.Parameter<number[]> | null | db.DefaultType | db.SQLFragment | db.SQLFragment<any, number[] | db.Parameter<number[]> | null | db.DefaultType | db.SQLFragment>;
-                  /**
+                /**
               * **test_arrays.tags**
               * - \`_text\` in database
               * - \`NOT NULL\`, no default
               */
               tags?: string[] | db.Parameter<string[]> | db.SQLFragment | db.SQLFragment<any, string[] | db.Parameter<string[]> | db.SQLFragment>;
-                };
-                UniqueIndex: 'test_arrays_pkey';
-                Column: id | matrix | numbers | tags;
-                SQL: test_arraysSQLExpression;
               };
-              'test_custom': {
-                Table: 'test_custom';
-                Selectable: {
-                  /**
+              UniqueIndex: 'test_arrays_pkey';
+              Column: id | matrix | numbers | tags;
+              SQL: test_arraysSQLExpression;
+            };
+            'test_custom': {
+              Table: 'test_custom';
+              Selectable: {
+                /**
               * **test_custom.email**
               * - \`email_address\` (base type: \`text\`) in database
               * - \`NOT NULL\`, no default
               */
               email: c.PgEmail_address;
-                  /**
+                /**
               * **test_custom.id**
               * - \`int4\` in database
               * - \`NOT NULL\`, default: \`nextval('test_custom_id_seq'::regclass)\`
               */
               id: number;
-                  /**
+                /**
               * **test_custom.score**
               * - \`positive_integer\` (base type: \`int4\`) in database
               * - Nullable, no default
               */
               score: c.PgPositive_integer | null;
-                };
-                JSONSelectable: {
-                  /**
+              };
+              JSONSelectable: {
+                /**
               * **test_custom.email**
               * - \`email_address\` (base type: \`text\`) in database
               * - \`NOT NULL\`, no default
               */
               email: c.PgEmail_address;
-                  /**
+                /**
               * **test_custom.id**
               * - \`int4\` in database
               * - \`NOT NULL\`, default: \`nextval('test_custom_id_seq'::regclass)\`
               */
               id: number;
-                  /**
+                /**
               * **test_custom.score**
               * - \`positive_integer\` (base type: \`int4\`) in database
               * - Nullable, no default
               */
               score: c.PgPositive_integer | null;
-                };
-                Whereable: {
-                  /**
+              };
+              Whereable: {
+                /**
               * **test_custom.email**
               * - \`email_address\` (base type: \`text\`) in database
               * - \`NOT NULL\`, no default
               */
               email?: c.PgEmail_address | db.Parameter<c.PgEmail_address> | db.SQLFragment | db.ParentColumn<any> | db.SQLFragment<any, c.PgEmail_address | db.Parameter<c.PgEmail_address> | db.SQLFragment | db.ParentColumn<any>>;
-                  /**
+                /**
               * **test_custom.id**
               * - \`int4\` in database
               * - \`NOT NULL\`, default: \`nextval('test_custom_id_seq'::regclass)\`
               */
               id?: number | db.Parameter<number> | db.SQLFragment | db.ParentColumn<any> | db.SQLFragment<any, number | db.Parameter<number> | db.SQLFragment | db.ParentColumn<any>>;
-                  /**
+                /**
               * **test_custom.score**
               * - \`positive_integer\` (base type: \`int4\`) in database
               * - Nullable, no default
               */
               score?: c.PgPositive_integer | db.Parameter<c.PgPositive_integer> | db.SQLFragment | db.ParentColumn<any> | db.SQLFragment<any, c.PgPositive_integer | db.Parameter<c.PgPositive_integer> | db.SQLFragment | db.ParentColumn<any>>;
-                };
-                Insertable: {
-                  /**
+              };
+              Insertable: {
+                /**
               * **test_custom.email**
               * - \`email_address\` (base type: \`text\`) in database
               * - \`NOT NULL\`, no default
               */
               email: c.PgEmail_address | db.Parameter<c.PgEmail_address> | db.SQLFragment;
-                  /**
+                /**
               * **test_custom.id**
               * - \`int4\` in database
               * - \`NOT NULL\`, default: \`nextval('test_custom_id_seq'::regclass)\`
               */
               id?: number | db.Parameter<number> | db.DefaultType | db.SQLFragment;
-                  /**
+                /**
               * **test_custom.score**
               * - \`positive_integer\` (base type: \`int4\`) in database
               * - Nullable, no default
               */
               score?: c.PgPositive_integer | db.Parameter<c.PgPositive_integer> | null | db.DefaultType | db.SQLFragment;
-                };
-                Updatable: {
-                  /**
+              };
+              Updatable: {
+                /**
               * **test_custom.email**
               * - \`email_address\` (base type: \`text\`) in database
               * - \`NOT NULL\`, no default
               */
               email?: c.PgEmail_address | db.Parameter<c.PgEmail_address> | db.SQLFragment | db.SQLFragment<any, c.PgEmail_address | db.Parameter<c.PgEmail_address> | db.SQLFragment>;
-                  /**
+                /**
               * **test_custom.id**
               * - \`int4\` in database
               * - \`NOT NULL\`, default: \`nextval('test_custom_id_seq'::regclass)\`
               */
               id?: number | db.Parameter<number> | db.DefaultType | db.SQLFragment | db.SQLFragment<any, number | db.Parameter<number> | db.DefaultType | db.SQLFragment>;
-                  /**
+                /**
               * **test_custom.score**
               * - \`positive_integer\` (base type: \`int4\`) in database
               * - Nullable, no default
               */
               score?: c.PgPositive_integer | db.Parameter<c.PgPositive_integer> | null | db.DefaultType | db.SQLFragment | db.SQLFragment<any, c.PgPositive_integer | db.Parameter<c.PgPositive_integer> | null | db.DefaultType | db.SQLFragment>;
-                };
-                UniqueIndex: 'test_custom_pkey';
-                Column: email | id | score;
-                SQL: test_customSQLExpression;
               };
-              'test_generated': {
-                Table: 'test_generated';
-                Selectable: {
-                  /**
+              UniqueIndex: 'test_custom_pkey';
+              Column: email | id | score;
+              SQL: test_customSQLExpression;
+            };
+            'test_generated': {
+              Table: 'test_generated';
+              Selectable: {
+                /**
               * **test_generated.first_name**
               * - \`text\` in database
               * - \`NOT NULL\`, no default
               */
               first_name: string;
-                  /**
+                /**
               * **test_generated.full_name**
               * - \`text\` in database
               * - Generated column
               */
               full_name: string | null;
-                  /**
+                /**
               * **test_generated.id**
               * - \`int4\` in database
               * - \`NOT NULL\`, default: \`nextval('test_generated_id_seq'::regclass)\`
               */
               id: number;
-                  /**
+                /**
               * **test_generated.last_name**
               * - \`text\` in database
               * - \`NOT NULL\`, no default
               */
               last_name: string;
-                };
-                JSONSelectable: {
-                  /**
+              };
+              JSONSelectable: {
+                /**
               * **test_generated.first_name**
               * - \`text\` in database
               * - \`NOT NULL\`, no default
               */
               first_name: string;
-                  /**
+                /**
               * **test_generated.full_name**
               * - \`text\` in database
               * - Generated column
               */
               full_name: string | null;
-                  /**
+                /**
               * **test_generated.id**
               * - \`int4\` in database
               * - \`NOT NULL\`, default: \`nextval('test_generated_id_seq'::regclass)\`
               */
               id: number;
-                  /**
+                /**
               * **test_generated.last_name**
               * - \`text\` in database
               * - \`NOT NULL\`, no default
               */
               last_name: string;
-                };
-                Whereable: {
-                  /**
+              };
+              Whereable: {
+                /**
               * **test_generated.first_name**
               * - \`text\` in database
               * - \`NOT NULL\`, no default
               */
               first_name?: string | db.Parameter<string> | db.SQLFragment | db.ParentColumn<any> | db.SQLFragment<any, string | db.Parameter<string> | db.SQLFragment | db.ParentColumn<any>>;
-                  /**
+                /**
               * **test_generated.full_name**
               * - \`text\` in database
               * - Generated column
               */
               full_name?: string | db.Parameter<string> | db.SQLFragment | db.ParentColumn<any> | db.SQLFragment<any, string | db.Parameter<string> | db.SQLFragment | db.ParentColumn<any>>;
-                  /**
+                /**
               * **test_generated.id**
               * - \`int4\` in database
               * - \`NOT NULL\`, default: \`nextval('test_generated_id_seq'::regclass)\`
               */
               id?: number | db.Parameter<number> | db.SQLFragment | db.ParentColumn<any> | db.SQLFragment<any, number | db.Parameter<number> | db.SQLFragment | db.ParentColumn<any>>;
-                  /**
+                /**
               * **test_generated.last_name**
               * - \`text\` in database
               * - \`NOT NULL\`, no default
               */
               last_name?: string | db.Parameter<string> | db.SQLFragment | db.ParentColumn<any> | db.SQLFragment<any, string | db.Parameter<string> | db.SQLFragment | db.ParentColumn<any>>;
-                };
-                Insertable: {
-                  /**
+              };
+              Insertable: {
+                /**
               * **test_generated.first_name**
               * - \`text\` in database
               * - \`NOT NULL\`, no default
               */
               first_name: string | db.Parameter<string> | db.SQLFragment;
-                  /**
+                /**
               * **test_generated.id**
               * - \`int4\` in database
               * - \`NOT NULL\`, default: \`nextval('test_generated_id_seq'::regclass)\`
               */
               id?: number | db.Parameter<number> | db.DefaultType | db.SQLFragment;
-                  /**
+                /**
               * **test_generated.last_name**
               * - \`text\` in database
               * - \`NOT NULL\`, no default
               */
               last_name: string | db.Parameter<string> | db.SQLFragment;
-                };
-                Updatable: {
-                  /**
+              };
+              Updatable: {
+                /**
               * **test_generated.first_name**
               * - \`text\` in database
               * - \`NOT NULL\`, no default
               */
               first_name?: string | db.Parameter<string> | db.SQLFragment | db.SQLFragment<any, string | db.Parameter<string> | db.SQLFragment>;
-                  /**
+                /**
               * **test_generated.id**
               * - \`int4\` in database
               * - \`NOT NULL\`, default: \`nextval('test_generated_id_seq'::regclass)\`
               */
               id?: number | db.Parameter<number> | db.DefaultType | db.SQLFragment | db.SQLFragment<any, number | db.Parameter<number> | db.DefaultType | db.SQLFragment>;
-                  /**
+                /**
               * **test_generated.last_name**
               * - \`text\` in database
               * - \`NOT NULL\`, no default
               */
               last_name?: string | db.Parameter<string> | db.SQLFragment | db.SQLFragment<any, string | db.Parameter<string> | db.SQLFragment>;
-                };
-                UniqueIndex: 'test_generated_pkey';
-                Column: first_name | full_name | id | last_name;
-                SQL: test_generatedSQLExpression;
               };
-              'test_json': {
-                Table: 'test_json';
-                Selectable: {
-                  /**
+              UniqueIndex: 'test_generated_pkey';
+              Column: first_name | full_name | id | last_name;
+              SQL: test_generatedSQLExpression;
+            };
+            'test_json': {
+              Table: 'test_json';
+              Selectable: {
+                /**
               * **test_json.config**
               * - \`jsonb\` in database
               * - \`NOT NULL\`, default: \`'{}'::jsonb\`
               */
               config: db.JSONValue;
-                  /**
+                /**
               * **test_json.id**
               * - \`int4\` in database
               * - \`NOT NULL\`, default: \`nextval('test_json_id_seq'::regclass)\`
               */
               id: number;
-                  /**
+                /**
               * **test_json.metadata**
               * - \`json\` in database
               * - \`NOT NULL\`, no default
               */
               metadata: db.JSONValue;
-                  /**
+                /**
               * **test_json.settings**
               * - \`jsonb\` in database
               * - Nullable, no default
               */
               settings: db.JSONValue | null;
-                };
-                JSONSelectable: {
-                  /**
+              };
+              JSONSelectable: {
+                /**
               * **test_json.config**
               * - \`jsonb\` in database
               * - \`NOT NULL\`, default: \`'{}'::jsonb\`
               */
               config: db.JSONValue;
-                  /**
+                /**
               * **test_json.id**
               * - \`int4\` in database
               * - \`NOT NULL\`, default: \`nextval('test_json_id_seq'::regclass)\`
               */
               id: number;
-                  /**
+                /**
               * **test_json.metadata**
               * - \`json\` in database
               * - \`NOT NULL\`, no default
               */
               metadata: db.JSONValue;
-                  /**
+                /**
               * **test_json.settings**
               * - \`jsonb\` in database
               * - Nullable, no default
               */
               settings: db.JSONValue | null;
-                };
-                Whereable: {
-                  /**
+              };
+              Whereable: {
+                /**
               * **test_json.config**
               * - \`jsonb\` in database
               * - \`NOT NULL\`, default: \`'{}'::jsonb\`
               */
               config?: db.JSONValue | db.Parameter<db.JSONValue> | db.SQLFragment | db.ParentColumn<any> | db.SQLFragment<any, db.JSONValue | db.Parameter<db.JSONValue> | db.SQLFragment | db.ParentColumn<any>>;
-                  /**
+                /**
               * **test_json.id**
               * - \`int4\` in database
               * - \`NOT NULL\`, default: \`nextval('test_json_id_seq'::regclass)\`
               */
               id?: number | db.Parameter<number> | db.SQLFragment | db.ParentColumn<any> | db.SQLFragment<any, number | db.Parameter<number> | db.SQLFragment | db.ParentColumn<any>>;
-                  /**
+                /**
               * **test_json.metadata**
               * - \`json\` in database
               * - \`NOT NULL\`, no default
               */
               metadata?: db.JSONValue | db.Parameter<db.JSONValue> | db.SQLFragment | db.ParentColumn<any> | db.SQLFragment<any, db.JSONValue | db.Parameter<db.JSONValue> | db.SQLFragment | db.ParentColumn<any>>;
-                  /**
+                /**
               * **test_json.settings**
               * - \`jsonb\` in database
               * - Nullable, no default
               */
               settings?: db.JSONValue | db.Parameter<db.JSONValue> | db.SQLFragment | db.ParentColumn<any> | db.SQLFragment<any, db.JSONValue | db.Parameter<db.JSONValue> | db.SQLFragment | db.ParentColumn<any>>;
-                };
-                Insertable: {
-                  /**
+              };
+              Insertable: {
+                /**
               * **test_json.config**
               * - \`jsonb\` in database
               * - \`NOT NULL\`, default: \`'{}'::jsonb\`
               */
               config?: db.JSONValue | db.Parameter<db.JSONValue> | db.DefaultType | db.SQLFragment;
-                  /**
+                /**
               * **test_json.id**
               * - \`int4\` in database
               * - \`NOT NULL\`, default: \`nextval('test_json_id_seq'::regclass)\`
               */
               id?: number | db.Parameter<number> | db.DefaultType | db.SQLFragment;
-                  /**
+                /**
               * **test_json.metadata**
               * - \`json\` in database
               * - \`NOT NULL\`, no default
               */
               metadata: db.JSONValue | db.Parameter<db.JSONValue> | db.SQLFragment;
-                  /**
+                /**
               * **test_json.settings**
               * - \`jsonb\` in database
               * - Nullable, no default
               */
               settings?: db.JSONValue | db.Parameter<db.JSONValue> | null | db.DefaultType | db.SQLFragment;
-                };
-                Updatable: {
-                  /**
+              };
+              Updatable: {
+                /**
               * **test_json.config**
               * - \`jsonb\` in database
               * - \`NOT NULL\`, default: \`'{}'::jsonb\`
               */
               config?: db.JSONValue | db.Parameter<db.JSONValue> | db.DefaultType | db.SQLFragment | db.SQLFragment<any, db.JSONValue | db.Parameter<db.JSONValue> | db.DefaultType | db.SQLFragment>;
-                  /**
+                /**
               * **test_json.id**
               * - \`int4\` in database
               * - \`NOT NULL\`, default: \`nextval('test_json_id_seq'::regclass)\`
               */
               id?: number | db.Parameter<number> | db.DefaultType | db.SQLFragment | db.SQLFragment<any, number | db.Parameter<number> | db.DefaultType | db.SQLFragment>;
-                  /**
+                /**
               * **test_json.metadata**
               * - \`json\` in database
               * - \`NOT NULL\`, no default
               */
               metadata?: db.JSONValue | db.Parameter<db.JSONValue> | db.SQLFragment | db.SQLFragment<any, db.JSONValue | db.Parameter<db.JSONValue> | db.SQLFragment>;
-                  /**
+                /**
               * **test_json.settings**
               * - \`jsonb\` in database
               * - Nullable, no default
               */
               settings?: db.JSONValue | db.Parameter<db.JSONValue> | null | db.DefaultType | db.SQLFragment | db.SQLFragment<any, db.JSONValue | db.Parameter<db.JSONValue> | null | db.DefaultType | db.SQLFragment>;
-                };
-                UniqueIndex: 'test_json_pkey';
-                Column: config | id | metadata | settings;
-                SQL: test_jsonSQLExpression;
               };
-              'test_nullability': {
-                Table: 'test_nullability';
-                Selectable: {
-                  /**
+              UniqueIndex: 'test_json_pkey';
+              Column: config | id | metadata | settings;
+              SQL: test_jsonSQLExpression;
+            };
+            'test_nullability': {
+              Table: 'test_nullability';
+              Selectable: {
+                /**
               * **test_nullability.id**
               * - \`int4\` in database
               * - \`NOT NULL\`, default: \`nextval('test_nullability_id_seq'::regclass)\`
               */
               id: number;
-                  /**
+                /**
               * **test_nullability.optional_field**
               * - \`text\` in database
               * - Nullable, no default
               */
               optional_field: string | null;
-                  /**
+                /**
               * **test_nullability.optional_number**
               * - \`int4\` in database
               * - Nullable, no default
               */
               optional_number: number | null;
-                  /**
+                /**
               * **test_nullability.required_field**
               * - \`text\` in database
               * - \`NOT NULL\`, no default
               */
               required_field: string;
-                  /**
+                /**
               * **test_nullability.required_number**
               * - \`int4\` in database
               * - \`NOT NULL\`, no default
               */
               required_number: number;
-                };
-                JSONSelectable: {
-                  /**
+              };
+              JSONSelectable: {
+                /**
               * **test_nullability.id**
               * - \`int4\` in database
               * - \`NOT NULL\`, default: \`nextval('test_nullability_id_seq'::regclass)\`
               */
               id: number;
-                  /**
+                /**
               * **test_nullability.optional_field**
               * - \`text\` in database
               * - Nullable, no default
               */
               optional_field: string | null;
-                  /**
+                /**
               * **test_nullability.optional_number**
               * - \`int4\` in database
               * - Nullable, no default
               */
               optional_number: number | null;
-                  /**
+                /**
               * **test_nullability.required_field**
               * - \`text\` in database
               * - \`NOT NULL\`, no default
               */
               required_field: string;
-                  /**
+                /**
               * **test_nullability.required_number**
               * - \`int4\` in database
               * - \`NOT NULL\`, no default
               */
               required_number: number;
-                };
-                Whereable: {
-                  /**
+              };
+              Whereable: {
+                /**
               * **test_nullability.id**
               * - \`int4\` in database
               * - \`NOT NULL\`, default: \`nextval('test_nullability_id_seq'::regclass)\`
               */
               id?: number | db.Parameter<number> | db.SQLFragment | db.ParentColumn<any> | db.SQLFragment<any, number | db.Parameter<number> | db.SQLFragment | db.ParentColumn<any>>;
-                  /**
+                /**
               * **test_nullability.optional_field**
               * - \`text\` in database
               * - Nullable, no default
               */
               optional_field?: string | db.Parameter<string> | db.SQLFragment | db.ParentColumn<any> | db.SQLFragment<any, string | db.Parameter<string> | db.SQLFragment | db.ParentColumn<any>>;
-                  /**
+                /**
               * **test_nullability.optional_number**
               * - \`int4\` in database
               * - Nullable, no default
               */
               optional_number?: number | db.Parameter<number> | db.SQLFragment | db.ParentColumn<any> | db.SQLFragment<any, number | db.Parameter<number> | db.SQLFragment | db.ParentColumn<any>>;
-                  /**
+                /**
               * **test_nullability.required_field**
               * - \`text\` in database
               * - \`NOT NULL\`, no default
               */
               required_field?: string | db.Parameter<string> | db.SQLFragment | db.ParentColumn<any> | db.SQLFragment<any, string | db.Parameter<string> | db.SQLFragment | db.ParentColumn<any>>;
-                  /**
+                /**
               * **test_nullability.required_number**
               * - \`int4\` in database
               * - \`NOT NULL\`, no default
               */
               required_number?: number | db.Parameter<number> | db.SQLFragment | db.ParentColumn<any> | db.SQLFragment<any, number | db.Parameter<number> | db.SQLFragment | db.ParentColumn<any>>;
-                };
-                Insertable: {
-                  /**
+              };
+              Insertable: {
+                /**
               * **test_nullability.id**
               * - \`int4\` in database
               * - \`NOT NULL\`, default: \`nextval('test_nullability_id_seq'::regclass)\`
               */
               id?: number | db.Parameter<number> | db.DefaultType | db.SQLFragment;
-                  /**
+                /**
               * **test_nullability.optional_field**
               * - \`text\` in database
               * - Nullable, no default
               */
               optional_field?: string | db.Parameter<string> | null | db.DefaultType | db.SQLFragment;
-                  /**
+                /**
               * **test_nullability.optional_number**
               * - \`int4\` in database
               * - Nullable, no default
               */
               optional_number?: number | db.Parameter<number> | null | db.DefaultType | db.SQLFragment;
-                  /**
+                /**
               * **test_nullability.required_field**
               * - \`text\` in database
               * - \`NOT NULL\`, no default
               */
               required_field: string | db.Parameter<string> | db.SQLFragment;
-                  /**
+                /**
               * **test_nullability.required_number**
               * - \`int4\` in database
               * - \`NOT NULL\`, no default
               */
               required_number: number | db.Parameter<number> | db.SQLFragment;
-                };
-                Updatable: {
-                  /**
+              };
+              Updatable: {
+                /**
               * **test_nullability.id**
               * - \`int4\` in database
               * - \`NOT NULL\`, default: \`nextval('test_nullability_id_seq'::regclass)\`
               */
               id?: number | db.Parameter<number> | db.DefaultType | db.SQLFragment | db.SQLFragment<any, number | db.Parameter<number> | db.DefaultType | db.SQLFragment>;
-                  /**
+                /**
               * **test_nullability.optional_field**
               * - \`text\` in database
               * - Nullable, no default
               */
               optional_field?: string | db.Parameter<string> | null | db.DefaultType | db.SQLFragment | db.SQLFragment<any, string | db.Parameter<string> | null | db.DefaultType | db.SQLFragment>;
-                  /**
+                /**
               * **test_nullability.optional_number**
               * - \`int4\` in database
               * - Nullable, no default
               */
               optional_number?: number | db.Parameter<number> | null | db.DefaultType | db.SQLFragment | db.SQLFragment<any, number | db.Parameter<number> | null | db.DefaultType | db.SQLFragment>;
-                  /**
+                /**
               * **test_nullability.required_field**
               * - \`text\` in database
               * - \`NOT NULL\`, no default
               */
               required_field?: string | db.Parameter<string> | db.SQLFragment | db.SQLFragment<any, string | db.Parameter<string> | db.SQLFragment>;
-                  /**
+                /**
               * **test_nullability.required_number**
               * - \`int4\` in database
               * - \`NOT NULL\`, no default
               */
               required_number?: number | db.Parameter<number> | db.SQLFragment | db.SQLFragment<any, number | db.Parameter<number> | db.SQLFragment>;
-                };
-                UniqueIndex: 'test_nullability_pkey';
-                Column: id | optional_field | optional_number | required_field | required_number;
-                SQL: test_nullabilitySQLExpression;
               };
+              UniqueIndex: 'test_nullability_pkey';
+              Column: id | optional_field | optional_number | required_field | required_number;
+              SQL: test_nullabilitySQLExpression;
+            };
           }
 
           /* --- Union types --- */

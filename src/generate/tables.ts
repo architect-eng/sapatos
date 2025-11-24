@@ -13,6 +13,7 @@ import {
 import {
   formatStructureMapEntry,
   formatNamespaceAlias,
+  formatSchemaNamespaces,
   formatSQLExpressionType,
   formatCrossTableTypes,
   formatCrossSchemaTypesForTables,
@@ -181,6 +182,12 @@ export const structureMapEntryForRelation = formatStructureMapEntry;
  * Re-exported from schemaFormatting module
  */
 export const namespaceAliasForRelation = formatNamespaceAlias;
+
+/**
+ * Generate schema-grouped namespace aliases for all relations
+ * Re-exported from schemaFormatting module
+ */
+export const schemaNamespacesForAllRelations = formatSchemaNamespaces;
 
 /**
  * Generate SQLExpression type definition for a relation

@@ -84,31 +84,31 @@ export const formatStructureMapEntry = (data: RelationData): string => {
   const sanitizedTypeName = sanitizeTypeIdentifier(tableName);
   const quotedColumns = columns.map(c => quoteIfIllegalIdentifier(c));
 
-  return `    '${tableName}': {
-      Table: '${tableName}';
-      Selectable: {
-        ${selectables.join('\n        ')}
-      };
-      JSONSelectable: {
-        ${JSONSelectables.join('\n        ')}
-      };
-      Whereable: {
-        ${whereables.join('\n        ')}
-      };
-      Insertable: {
-        ${insertables.length > 0 ? insertables.join('\n        ') : `[key: string]: never;`}
-      };
-      Updatable: {
-        ${updatables.length > 0 ? updatables.join('\n        ') : `[key: string]: never;`}
-      };
-      UniqueIndex: ${uniqueIndexes.length > 0 ?
+  return `  '${tableName}': {
+    Table: '${tableName}';
+    Selectable: {
+      ${selectables.join('\n      ')}
+    };
+    JSONSelectable: {
+      ${JSONSelectables.join('\n      ')}
+    };
+    Whereable: {
+      ${whereables.join('\n      ')}
+    };
+    Insertable: {
+      ${insertables.length > 0 ? insertables.join('\n      ') : `[key: string]: never;`}
+    };
+    Updatable: {
+      ${updatables.length > 0 ? updatables.join('\n      ') : `[key: string]: never;`}
+    };
+    UniqueIndex: ${uniqueIndexes.length > 0 ?
         uniqueIndexes.map((ui: UniqueIndexRow) => `'${ui.indexname}'`).join(' | ') :
         'never'};
-      Column: ${quotedColumns.length > 0 ?
+    Column: ${quotedColumns.length > 0 ?
         quotedColumns.join(' | ') :
         'never'};
-      SQL: ${sanitizedTypeName}SQLExpression;
-    };`;
+    SQL: ${sanitizedTypeName}SQLExpression;
+  };`;
 };
 
 /**
@@ -135,6 +135,79 @@ export namespace ${rel.name} {
   export type SQLExpression = Table | db.ColumnNames<Updatable | (keyof Updatable)[]> | db.ColumnValues<Updatable> | Whereable | Column | db.ParentColumn | db.GenericSQLExpression;
   export type SQL = SQLExpression | SQLExpression[];
 }`;
+};
+
+/**
+ * Generate a single table namespace with proper indentation for nesting
+ *
+ * @param data - RelationData for the table
+ * @param indent - Indentation string to prepend to each line (e.g., '' or '  ')
+ */
+const formatTableNamespace = (data: RelationData, indent: string): string => {
+  const { rel, schemaPrefix, tableComment } = data;
+  const tableName = `${schemaPrefix}${rel.name}`;
+
+  return `${tableComment ? tableComment.split('\n').map(line => `${indent}${line}`).join('\n') + '\n' : ''}${indent}export namespace ${rel.name} {
+${indent}  export type Table = StructureMap['${tableName}']['Table'];
+${indent}  export type Selectable = StructureMap['${tableName}']['Selectable'];
+${indent}  export type JSONSelectable = StructureMap['${tableName}']['JSONSelectable'];
+${indent}  export type Whereable = StructureMap['${tableName}']['Whereable'];
+${indent}  export type Insertable = StructureMap['${tableName}']['Insertable'];
+${indent}  export type Updatable = StructureMap['${tableName}']['Updatable'];
+${indent}  export type UniqueIndex = StructureMap['${tableName}']['UniqueIndex'];
+${indent}  export type Column = StructureMap['${tableName}']['Column'];
+${indent}  export type OnlyCols<T extends readonly Column[]> = Pick<Selectable, T[number]>;
+${indent}  export type SQLExpression = Table | db.ColumnNames<Updatable | (keyof Updatable)[]> | db.ColumnValues<Updatable> | Whereable | Column | db.ParentColumn | db.GenericSQLExpression;
+${indent}  export type SQL = SQLExpression | SQLExpression[];
+${indent}}`;
+};
+
+/**
+ * Generate namespace aliases grouped by schema
+ *
+ * Creates nested schema namespaces for non-default schemas to prevent name collisions:
+ * - Default schema tables: flat `export namespace users { ... }`
+ * - Other schema tables: nested `export namespace auth { export namespace users { ... } }`
+ *
+ * @param allRelationData - All table/view relation data
+ * @param unprefixedSchema - The default schema (usually 'public') that should remain unprefixed
+ */
+export const formatSchemaNamespaces = (allRelationData: RelationData[], unprefixedSchema: string | null): string => {
+  // Group relations by schema
+  const bySchema = new Map<string, RelationData[]>();
+
+  for (const data of allRelationData) {
+    const schema = data.rel.schema;
+    const existing = bySchema.get(schema);
+    if (existing) {
+      existing.push(data);
+    } else {
+      bySchema.set(schema, [data]);
+    }
+  }
+
+  // Generate namespaces
+  const namespaces: string[] = [];
+
+  for (const [schema, relations] of bySchema) {
+    if (schema === unprefixedSchema) {
+      // Default schema: keep tables flat (no schema wrapper)
+      for (const data of relations) {
+        namespaces.push(formatTableNamespace(data, ''));
+      }
+    } else {
+      // Non-default schema: nest tables under schema namespace
+      const tableNamespaces = relations
+        .map(data => formatTableNamespace(data, '  '))
+        .join('\n\n');
+
+      namespaces.push(`export namespace ${schema} {
+${tableNamespaces}
+}`);
+    }
+  }
+
+  return namespaces.join('\n\n');
 };
 
 /**

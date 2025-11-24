@@ -12,7 +12,7 @@ import {
   relationsInSchema,
   dataForRelationInSchema,
   structureMapEntryForRelation,
-  namespaceAliasForRelation,
+  schemaNamespacesForAllRelations,
   sqlExpressionTypeForRelation,
 } from './tables';
 
@@ -88,8 +88,8 @@ export const tsForConfig = async (
   // Generate SQLExpression types (needed by StructureMap)
   const sqlExpressionTypes = allTableData.map(data => sqlExpressionTypeForRelation(data)).join('\n  ');
 
-  // Generate namespace aliases (for backward compatibility)
-  const namespaceAliases = allTableData.map(data => namespaceAliasForRelation(data)).join('\n\n');
+  // Generate namespace aliases (for backward compatibility, grouped by schema)
+  const namespaceAliases = schemaNamespacesForAllRelations(allTableData, config.unprefixedSchema);
 
   // Generate enum types (only if there are actual enums)
   const enumTypes = schemaData
