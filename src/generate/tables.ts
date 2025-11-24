@@ -241,6 +241,209 @@ export namespace ${rel.name} {
   return tableDef;
 };
 
+/**
+ * Interface containing structured data for a table/view relation
+ */
+export interface RelationData {
+  rel: Relation;
+  schemaName: string;
+  schemaPrefix: string;
+  selectables: string[];
+  JSONSelectables: string[];
+  whereables: string[];
+  insertables: string[];
+  updatables: string[];
+  uniqueIndexes: UniqueIndexRow[];
+  columns: string[]; // column names
+  friendlyRelType: string;
+  tableComment: string;
+}
+
+/**
+ * Collects structured data for a relation without formatting it
+ */
+export const dataForRelationInSchema = async (
+  rel: Relation,
+  schemaName: string,
+  enums: EnumData,
+  customTypes: CustomTypes,  // an 'out' parameter
+  config: CompleteConfig,
+  queryFn: (q: pg.QueryConfig) => Promise<pg.QueryResult>,
+): Promise<RelationData> => {
+  const
+    rows = await columnsForRelation(rel, schemaName, queryFn),
+    selectables: string[] = [],
+    JSONSelectables: string[] = [],
+    whereables: string[] = [],
+    insertables: string[] = [],
+    updatables: string[] = [],
+    columns: string[] = [];
+
+  rows.forEach((row: ColumnRow) => {
+    const { column, isGenerated, isNullable, hasDefault, udtName, domainName } = row;
+
+    // Skip rows with missing required column metadata
+    if (!column || !udtName) {
+      return;
+    }
+
+    let
+      selectableType = tsTypeForPgType(udtName, enums, 'Selectable', config),
+      JSONSelectableType = tsTypeForPgType(udtName, enums, 'JSONSelectable', config),
+      whereableType = tsTypeForPgType(udtName, enums, 'Whereable', config),
+      insertableType = tsTypeForPgType(udtName, enums, 'Insertable', config),
+      updatableType = tsTypeForPgType(udtName, enums, 'Updatable', config);
+
+    const
+      columnDoc = createColumnDoc(config, schemaName, rel, row),
+      schemaPrefix = config.unprefixedSchema === schemaName ? '' : `${schemaName}.`,
+      prefixedRelName = schemaPrefix + rel.name,
+      columnOptions =
+        (config.columnOptions[prefixedRelName] !== undefined && config.columnOptions[prefixedRelName][column] !== undefined ? config.columnOptions[prefixedRelName][column] : undefined) ??
+        (config.columnOptions["*"] !== undefined && config.columnOptions["*"][column] !== undefined ? config.columnOptions["*"][column] : undefined),
+      isInsertable = rel.insertable && !isGenerated && columnOptions?.insert !== 'excluded',
+      isUpdatable = rel.insertable && !isGenerated && columnOptions?.update !== 'excluded',
+      insertablyOptional = (isNullable || hasDefault || columnOptions?.insert === 'optional') ? '?' : '',
+      orNull = isNullable ? ' | null' : '',
+      orDefault = (isNullable || hasDefault) ? ' | db.DefaultType' : '',
+      possiblyQuotedColumn = quoteIfIllegalIdentifier(column);
+
+    if (selectableType === 'any' || domainName !== null) {
+      const
+        customType: string = domainName !== null ? domainName : udtName,
+        prefixedCustomType = transformCustomType(customType, config);
+
+      customTypes[prefixedCustomType] = selectableType;
+      selectableType = JSONSelectableType = whereableType = insertableType = updatableType =
+        'c.' + prefixedCustomType;
+    }
+
+    columns.push(column);
+    selectables.push(`${columnDoc}${possiblyQuotedColumn}: ${selectableType}${orNull};`);
+    JSONSelectables.push(`${columnDoc}${possiblyQuotedColumn}: ${JSONSelectableType}${orNull};`);
+
+    const basicWhereableTypes = `${whereableType} | db.Parameter<${whereableType}> | db.SQLFragment | db.ParentColumn`;
+    whereables.push(`${columnDoc}${possiblyQuotedColumn}?: ${basicWhereableTypes} | db.SQLFragment<any, ${basicWhereableTypes}>;`);
+
+    const insertableTypes = `${insertableType} | db.Parameter<${insertableType}>${orNull}${orDefault} | db.SQLFragment`;
+    if (isInsertable) insertables.push(`${columnDoc}${possiblyQuotedColumn}${insertablyOptional}: ${insertableTypes};`);
+
+    const updatableTypes = `${updatableType} | db.Parameter<${updatableType}>${orNull}${orDefault} | db.SQLFragment`;
+    if (isUpdatable) updatables.push(`${columnDoc}${possiblyQuotedColumn}?: ${updatableTypes} | db.SQLFragment<any, ${updatableTypes}>;`);
+  });
+
+  const
+    result = await queryFn({
+      text: `
+        SELECT DISTINCT i.indexname
+        FROM pg_catalog.pg_indexes i
+        JOIN pg_catalog.pg_class c ON c.relname = i.indexname
+        JOIN pg_catalog.pg_index idx ON idx.indexrelid = c.oid AND idx.indisunique
+        WHERE i.tablename = $1 AND i.schemaname = $2
+        ORDER BY i.indexname`,
+      values: [rel.name, schemaName]
+    }) as pg.QueryResult<UniqueIndexRow>,
+    uniqueIndexes = result.rows;
+
+  const
+    schemaPrefix = schemaName === config.unprefixedSchema ? '' : `${schemaName}.`,
+    friendlyRelTypes: Record<Relation['type'], string> = {
+      table: 'Table',
+      fdw: 'Foreign table',
+      view: 'View',
+      mview: 'Materialized view',
+    },
+    friendlyRelType = friendlyRelTypes[rel.type],
+    tableComment = config.schemaJSDoc ? `
+/**
+ * **${schemaPrefix}${rel.name}**
+ * - ${friendlyRelType} in database
+ */` : ``;
+
+  return {
+    rel,
+    schemaName,
+    schemaPrefix,
+    selectables,
+    JSONSelectables,
+    whereables,
+    insertables,
+    updatables,
+    uniqueIndexes,
+    columns,
+    friendlyRelType,
+    tableComment,
+  };
+};
+
+/**
+ * Generate StructureMap entry for a relation
+ */
+export const structureMapEntryForRelation = (data: RelationData): string => {
+  const { rel, schemaPrefix, selectables, JSONSelectables, whereables, insertables, updatables, uniqueIndexes, columns } = data;
+  const tableName = `${schemaPrefix}${rel.name}`;
+  const quotedColumns = columns.map(c => quoteIfIllegalIdentifier(c));
+
+  return `    '${tableName}': {
+      Table: '${tableName}';
+      Selectable: {
+        ${selectables.join('\n        ')}
+      };
+      JSONSelectable: {
+        ${JSONSelectables.join('\n        ')}
+      };
+      Whereable: {
+        ${whereables.join('\n        ')}
+      };
+      Insertable: {
+        ${insertables.length > 0 ? insertables.join('\n        ') : `[key: string]: never;`}
+      };
+      Updatable: {
+        ${updatables.length > 0 ? updatables.join('\n        ') : `[key: string]: never;`}
+      };
+      UniqueIndex: ${uniqueIndexes.length > 0 ?
+        uniqueIndexes.map((ui: UniqueIndexRow) => `'${ui.indexname}'`).join(' | ') :
+        'never'};
+      Column: ${quotedColumns.length > 0 ?
+        quotedColumns.join(' | ') :
+        'never'};
+      SQL: ${tableName}SQLExpression;
+    };`;
+};
+
+/**
+ * Generate namespace alias for a relation (for backward compatibility)
+ */
+export const namespaceAliasForRelation = (data: RelationData): string => {
+  const { rel, schemaPrefix, tableComment } = data;
+  const tableName = `${schemaPrefix}${rel.name}`;
+
+  return `${tableComment}
+export namespace ${rel.name} {
+  export type Table = StructureMap['${tableName}']['Table'];
+  export type Selectable = StructureMap['${tableName}']['Selectable'];
+  export type JSONSelectable = StructureMap['${tableName}']['JSONSelectable'];
+  export type Whereable = StructureMap['${tableName}']['Whereable'];
+  export type Insertable = StructureMap['${tableName}']['Insertable'];
+  export type Updatable = StructureMap['${tableName}']['Updatable'];
+  export type UniqueIndex = StructureMap['${tableName}']['UniqueIndex'];
+  export type Column = StructureMap['${tableName}']['Column'];
+  export type OnlyCols<T extends readonly Column[]> = Pick<Selectable, T[number]>;
+  export type SQLExpression = Table | db.ColumnNames<Updatable | (keyof Updatable)[]> | db.ColumnValues<Updatable> | Whereable | Column | db.ParentColumn | db.GenericSQLExpression;
+  export type SQL = SQLExpression | SQLExpression[];
+}`;
+};
+
+/**
+ * Generate SQLExpression type definition for a relation
+ */
+export const sqlExpressionTypeForRelation = (data: RelationData): string => {
+  const { schemaPrefix, rel } = data;
+  const tableName = `${schemaPrefix}${rel.name}`;
+
+  return `type ${tableName}SQLExpression = '${tableName}' | db.ColumnNames<StructureMap['${tableName}']['Updatable'] | (keyof StructureMap['${tableName}']['Updatable'])[]> | db.ColumnValues<StructureMap['${tableName}']['Updatable']> | StructureMap['${tableName}']['Whereable'] | StructureMap['${tableName}']['Column'] | db.ParentColumn | db.GenericSQLExpression;`;
+};
+
 const transformCustomType = (customType: string, config: CompleteConfig) => {
   const
     ctt = config.customTypesTransform,

@@ -6,12 +6,12 @@ import type { CompleteConfig } from './config';
 import { enumDataForSchema, enumTypesForEnumData } from './enums';
 import { header } from './header';
 import {
-  Relation,
+  RelationData,
   relationsInSchema,
-  definitionForRelationInSchema,
-  crossTableTypesForTables,
-  crossSchemaTypesForAllTables,
-  crossSchemaTypesForSchemas,
+  dataForRelationInSchema,
+  structureMapEntryForRelation,
+  namespaceAliasForRelation,
+  sqlExpressionTypeForRelation,
 } from './tables';
 
 
@@ -48,11 +48,6 @@ const sourceFilesForCustomTypes = (customTypes: CustomTypes) =>
       )
     ]));
 
-function indentAll(level: number, s: string) {
-  if (level === 0) return s;
-  return s.replace(/^/gm, ' '.repeat(level));
-}
-
 export const tsForConfig = async (config: CompleteConfig, debug: (s: string) => void) => {
   let querySeq = 0;
   const
@@ -82,42 +77,81 @@ export const tsForConfig = async (config: CompleteConfig, debug: (s: string) => 
               .filter(rel => rules.include === '*' || rules.include.indexOf(rel.name) >= 0)
               .filter(rel => rules.exclude.indexOf(rel.name) < 0),
           enums = await enumDataForSchema(schema, queryFn),
-          tableDefs = await Promise.all(tables.map(async table =>
-            definitionForRelationInSchema(table, schema, enums, customTypes, config, queryFn))),
-          schemaIsUnprefixed = schema === config.unprefixedSchema,
-          none = '/* (none) */',
-          schemaDef = `/* === schema: ${schema} === */\n` +
-            (schemaIsUnprefixed ? '' : `\nexport namespace ${schema} {\n`) +
-            indentAll(schemaIsUnprefixed ? 0 : 2,
-              `\n/* --- enums --- */\n` +
-              (enumTypesForEnumData(enums) || none) +
-              `\n\n/* --- tables --- */\n` +
-              (tableDefs.join('\n') || none) +
-              `\n\n/* --- aggregate types --- */\n` +
-              (schemaIsUnprefixed ?
-                `\nexport namespace ${schema} {` + (indentAll(2, crossTableTypesForTables(tables) || none)) + '\n}\n' :
-                (crossTableTypesForTables(tables) || none))
-            ) + '\n' +
-            (schemaIsUnprefixed ? '' : `}\n`);
+          tableData = await Promise.all(tables.map(async table =>
+            dataForRelationInSchema(table, schema, enums, customTypes, config, queryFn)));
 
-        return { schemaDef, tables };
+        return { schema, tables, tableData, enums };
       }))
     ),
-    schemaDefs = schemaData.map(r => r.schemaDef),
-    schemaTables = schemaData.map(r => r.tables),
-    allTables = ([] as Relation[]).concat(...schemaTables),
-    hasCustomTypes = Object.keys(customTypes).length > 0,
-    ts = header() + declareModule('sapatos/schema',
-      `\nimport type * as db from 'sapatos/db';\n` +
-      (hasCustomTypes ? `import type * as c from 'sapatos/custom';\n` : ``) +
-      versionCanary + '\n\n' +
-      schemaDefs.join('\n\n') +
-      `\n\n/* === global aggregate types === */\n` +
-      crossSchemaTypesForSchemas(schemaNames) +
-      `\n\n/* === lookups === */\n` +
-      crossSchemaTypesForAllTables(allTables, config.unprefixedSchema)
-    ),
-    customTypeSourceFiles = sourceFilesForCustomTypes(customTypes);
+    allTableData = ([] as RelationData[]).concat(...schemaData.map(r => r.tableData)),
+    hasCustomTypes = Object.keys(customTypes).length > 0;
+
+  // Generate StructureMap entries
+  const structureMapEntries = allTableData.map(data => structureMapEntryForRelation(data)).join('\n');
+
+  // Generate SQLExpression types (needed by StructureMap)
+  const sqlExpressionTypes = allTableData.map(data => sqlExpressionTypeForRelation(data)).join('\n  ');
+
+  // Generate namespace aliases (for backward compatibility)
+  const namespaceAliases = allTableData.map(data => namespaceAliasForRelation(data)).join('\n\n');
+
+  // Generate enum types (only if there are actual enums)
+  const enumTypes = schemaData
+    .map(({ enums }) => Object.keys(enums).length > 0 ? enumTypesForEnumData(enums) : '')
+    .filter(s => s.trim().length > 0)
+    .join('\n\n');
+
+  // Generate lookup types
+  const lookupTypes = `
+export type SelectableForTable<T extends Table> = StructureMap[T]['Selectable'];
+
+export type JSONSelectableForTable<T extends Table> = StructureMap[T]['JSONSelectable'];
+
+export type WhereableForTable<T extends Table> = StructureMap[T]['Whereable'];
+
+export type InsertableForTable<T extends Table> = StructureMap[T]['Insertable'];
+
+export type UpdatableForTable<T extends Table> = StructureMap[T]['Updatable'];
+
+export type UniqueIndexForTable<T extends Table> = StructureMap[T]['UniqueIndex'];
+
+export type ColumnForTable<T extends Table> = StructureMap[T]['Column'];
+
+export type SQLForTable<T extends Table> = StructureMap[T]['SQL'];
+`;
+
+  // Generate union types
+  const unionTypes = `
+export type Table = keyof StructureMap;
+export type Selectable = StructureMap[Table]['Selectable'];
+export type JSONSelectable = StructureMap[Table]['JSONSelectable'];
+export type Whereable = StructureMap[Table]['Whereable'];
+export type Insertable = StructureMap[Table]['Insertable'];
+export type Updatable = StructureMap[Table]['Updatable'];
+export type UniqueIndex = StructureMap[Table]['UniqueIndex'];
+export type Column = StructureMap[Table]['Column'];
+`;
+
+  const ts = header() + declareModule('sapatos/schema',
+    `\nimport type * as db from 'sapatos/db';\n` +
+    (hasCustomTypes ? `import type * as c from 'sapatos/custom';\n` : ``) +
+    versionCanary + '\n\n' +
+    (enumTypes ? `/* --- enums --- */\n${enumTypes}\n\n` : '') +
+    `/* --- SQLExpression helper types --- */\n` +
+    sqlExpressionTypes + '\n\n' +
+    `/* --- StructureMap --- */\n` +
+    `interface StructureMap {\n` +
+    structureMapEntries + '\n' +
+    `}\n\n` +
+    `/* --- Union types --- */\n` +
+    unionTypes + '\n\n' +
+    `/* --- Lookup types --- */\n` +
+    lookupTypes + '\n\n' +
+    `/* --- Backward compatible namespace aliases --- */\n` +
+    namespaceAliases
+  );
+
+  const customTypeSourceFiles = sourceFilesForCustomTypes(customTypes);
 
   await pool.end();
   return { ts, customTypeSourceFiles };
