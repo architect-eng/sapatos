@@ -2,6 +2,7 @@
 
 import * as fs from 'fs';
 import * as path from 'path';
+import * as pg from 'pg';
 import { finaliseConfig, Config } from './config';
 import { header } from './header';
 import * as legacy from './legacy';
@@ -11,8 +12,9 @@ import { tsForConfig } from './tsOutput';
 /**
  * Generate a schema and supporting files and folders given a configuration.
  * @param suppliedConfig An object approximately matching `sapatosconfig.json`.
+ * @param existingPool Optional existing PostgreSQL pool to reuse (useful in tests to avoid creating multiple pools).
  */
-export const generate = async (suppliedConfig: Config) => {
+export const generate = async (suppliedConfig: Config, existingPool?: pg.Pool) => {
   const
     config = finaliseConfig(suppliedConfig),
     log = config.progressListener === true ? console.log :
@@ -22,7 +24,7 @@ export const generate = async (suppliedConfig: Config) => {
     debug = config.debugListener === true ? console.log :
       (config.debugListener !== false ? config.debugListener : (() => void 0)),
 
-    { ts, customTypeSourceFiles } = await tsForConfig(config, debug),
+    { ts, customTypeSourceFiles } = await tsForConfig(config, debug, existingPool),
 
     folderName = 'sapatos',
     schemaName = 'schema' + config.outExt,

@@ -1,66 +1,33 @@
 import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
-import { PostgreSqlContainer, StartedPostgreSqlContainer } from '@testcontainers/postgresql';
 import { Pool } from 'pg';
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
+import { startTestDatabase, stopTestDatabase, getTestPool, getTestConnectionConfig } from '../test-helpers/integration-db';
 import type { Config } from './config';
 import { generate } from './write';
 
 describe('Type Generation - End-to-End Integration Tests', () => {
-  let container: StartedPostgreSqlContainer;
   let pool: Pool;
   let testOutputDir: string;
 
   beforeAll(async () => {
-    console.log('Starting PostgreSQL container for type generation tests...');
-    container = await new PostgreSqlContainer('postgres:16-alpine')
-      .withDatabase('type_gen_test')
-      .withUsername('test_user')
-      .withPassword('test_pass')
-      .start();
-    console.log('PostgreSQL container started');
-
-    pool = new Pool({
-      host: container.getHost(),
-      port: container.getPort(),
-      database: container.getDatabase(),
-      user: container.getUsername(),
-      password: container.getPassword(),
-    });
-
-    // Register error handler to suppress expected shutdown errors
-    // Error code 57P01: "terminating connection due to administrator command"
-    // This prevents unhandled errors when the container is stopped
-    pool.on('error', (err) => {
-      const code = 'code' in err ? (err as { code?: string }).code : undefined;
-      if (code === '57P01' || code === 'ECONNREFUSED') {
-        console.log('Expected connection error during cleanup');
-      } else {
-        console.error('Unexpected pool error:', err);
-      }
-    });
+    // Use shared test database infrastructure
+    await startTestDatabase();
+    pool = getTestPool();
 
     // Create a unique temp directory for test outputs
     testOutputDir = fs.mkdtempSync(path.join(os.tmpdir(), 'sapatos-test-'));
   }, 60000);
 
   afterAll(async () => {
-    // Gracefully shut down pool, suppressing expected cleanup errors
-    try {
-      await pool.end();
-    } catch (err) {
-      console.log('Pool cleanup error (expected during shutdown):', err instanceof Error ? err.message : String(err));
-    }
-
-    console.log('Stopping PostgreSQL container...');
-    await container.stop();
-    console.log('PostgreSQL container stopped');
-
     // Clean up test output directory
     if (fs.existsSync(testOutputDir)) {
       fs.rmSync(testOutputDir, { recursive: true, force: true });
     }
+
+    // Use shared cleanup (properly closes pool before stopping container)
+    await stopTestDatabase();
   }, 60000);
 
   /**
@@ -96,13 +63,7 @@ describe('Type Generation - End-to-End Integration Tests', () => {
    * Helper: Create base config for tests
    */
   const createBaseConfig = (outDir: string): Config => ({
-    db: {
-      host: container.getHost(),
-      port: container.getPort(),
-      database: container.getDatabase(),
-      user: container.getUsername(),
-      password: container.getPassword(),
-    },
+    db: getTestConnectionConfig(),
     outDir,
     schemas: {
       public: { include: '*', exclude: [] },
@@ -126,7 +87,7 @@ describe('Type Generation - End-to-End Integration Tests', () => {
       `);
 
       const config = createBaseConfig(outDir);
-      await generate(config);
+      await generate(config, pool);
 
       const schema = readGeneratedSchema(outDir);
 
@@ -184,7 +145,7 @@ describe('Type Generation - End-to-End Integration Tests', () => {
       `);
 
       const config = createBaseConfig(outDir);
-      await generate(config);
+      await generate(config, pool);
 
       const schema = readGeneratedSchema(outDir);
 
@@ -217,7 +178,7 @@ describe('Type Generation - End-to-End Integration Tests', () => {
       `);
 
       const config = createBaseConfig(outDir);
-      await generate(config);
+      await generate(config, pool);
 
       const schema = readGeneratedSchema(outDir);
 
@@ -252,7 +213,7 @@ describe('Type Generation - End-to-End Integration Tests', () => {
       `);
 
       const config = createBaseConfig(outDir);
-      await generate(config);
+      await generate(config, pool);
 
       const schema = readGeneratedSchema(outDir);
 
@@ -279,7 +240,7 @@ describe('Type Generation - End-to-End Integration Tests', () => {
       `);
 
       const config = createBaseConfig(outDir);
-      await generate(config);
+      await generate(config, pool);
 
       const schema = readGeneratedSchema(outDir);
 
@@ -305,7 +266,7 @@ describe('Type Generation - End-to-End Integration Tests', () => {
       `);
 
       const config = createBaseConfig(outDir);
-      await generate(config);
+      await generate(config, pool);
 
       const schema = readGeneratedSchema(outDir);
 
@@ -329,7 +290,7 @@ describe('Type Generation - End-to-End Integration Tests', () => {
       `);
 
       const config = createBaseConfig(outDir);
-      await generate(config);
+      await generate(config, pool);
 
       const schema = readGeneratedSchema(outDir);
 
@@ -363,7 +324,7 @@ describe('Type Generation - End-to-End Integration Tests', () => {
       `);
 
       const config = createBaseConfig(outDir);
-      await generate(config);
+      await generate(config, pool);
 
       const schema = readGeneratedSchema(outDir);
 
@@ -412,7 +373,7 @@ describe('Type Generation - End-to-End Integration Tests', () => {
       `);
 
       const config = createBaseConfig(outDir);
-      await generate(config);
+      await generate(config, pool);
 
       const schema = readGeneratedSchema(outDir);
 
@@ -453,13 +414,7 @@ describe('Type Generation - End-to-End Integration Tests', () => {
       `);
 
       const config: Config = {
-        db: {
-          host: container.getHost(),
-          port: container.getPort(),
-          database: container.getDatabase(),
-          user: container.getUsername(),
-          password: container.getPassword(),
-        },
+        db: getTestConnectionConfig(),
         outDir,
         schemas: {
           app: { include: '*', exclude: [] },
@@ -468,7 +423,7 @@ describe('Type Generation - End-to-End Integration Tests', () => {
         unprefixedSchema: null, // All schemas should be prefixed
       };
 
-      await generate(config);
+      await generate(config, pool);
 
       const schema = readGeneratedSchema(outDir);
 
@@ -494,13 +449,7 @@ describe('Type Generation - End-to-End Integration Tests', () => {
       `);
 
       const config: Config = {
-        db: {
-          host: container.getHost(),
-          port: container.getPort(),
-          database: container.getDatabase(),
-          user: container.getUsername(),
-          password: container.getPassword(),
-        },
+        db: getTestConnectionConfig(),
         outDir,
         schemas: {
           public: { include: '*', exclude: [] },
@@ -508,7 +457,7 @@ describe('Type Generation - End-to-End Integration Tests', () => {
         unprefixedSchema: 'public', // public schema should be unprefixed
       };
 
-      await generate(config);
+      await generate(config, pool);
 
       const schema = readGeneratedSchema(outDir);
 
@@ -532,13 +481,7 @@ describe('Type Generation - End-to-End Integration Tests', () => {
       `);
 
       const config: Config = {
-        db: {
-          host: container.getHost(),
-          port: container.getPort(),
-          database: container.getDatabase(),
-          user: container.getUsername(),
-          password: container.getPassword(),
-        },
+        db: getTestConnectionConfig(),
         outDir,
         schemas: {
           public: {
@@ -548,7 +491,7 @@ describe('Type Generation - End-to-End Integration Tests', () => {
         },
       };
 
-      await generate(config);
+      await generate(config, pool);
 
       const schema = readGeneratedSchema(outDir);
 
@@ -569,20 +512,14 @@ describe('Type Generation - End-to-End Integration Tests', () => {
       `);
 
       const config: Config = {
-        db: {
-          host: container.getHost(),
-          port: container.getPort(),
-          database: container.getDatabase(),
-          user: container.getUsername(),
-          password: container.getPassword(),
-        },
+        db: getTestConnectionConfig(),
         outDir,
         schemas: {
           public: { include: '*', exclude: '*' },
         },
       };
 
-      await generate(config);
+      await generate(config, pool);
 
       const schema = readGeneratedSchema(outDir);
 
@@ -606,7 +543,7 @@ describe('Type Generation - End-to-End Integration Tests', () => {
       `);
 
       const config = createBaseConfig(outDir);
-      await generate(config);
+      await generate(config, pool);
 
       const schema = readGeneratedSchema(outDir);
 
@@ -627,7 +564,7 @@ describe('Type Generation - End-to-End Integration Tests', () => {
       `);
 
       const config = createBaseConfig(outDir);
-      await generate(config);
+      await generate(config, pool);
 
       const schema = readGeneratedSchema(outDir);
 
@@ -655,7 +592,7 @@ describe('Type Generation - End-to-End Integration Tests', () => {
       const config = createBaseConfig(outDir);
 
       // First generation
-      await generate(config);
+      await generate(config, pool);
 
       // Modify the custom type file
       const customTypePath = path.join(outDir, 'sapatos', 'custom', 'PgMy_custom.d.ts');
@@ -663,7 +600,7 @@ describe('Type Generation - End-to-End Integration Tests', () => {
       fs.writeFileSync(customTypePath, modifiedContent);
 
       // Second generation (should not overwrite)
-      await generate(config);
+      await generate(config, pool);
 
       // Verify custom file was preserved
       const finalContent = fs.readFileSync(customTypePath, 'utf-8');
@@ -696,7 +633,7 @@ describe('Type Generation - End-to-End Integration Tests', () => {
       `);
 
       const config = createBaseConfig(outDir);
-      await generate(config);
+      await generate(config, pool);
 
       const schema = readGeneratedSchema(outDir);
 
@@ -735,7 +672,7 @@ describe('Type Generation - End-to-End Integration Tests', () => {
       `);
 
       const config = createBaseConfig(outDir);
-      await generate(config);
+      await generate(config, pool);
 
       const schema = readGeneratedSchema(outDir);
 

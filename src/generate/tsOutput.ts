@@ -45,10 +45,15 @@ const sourceFilesForCustomTypes = (customTypes: CustomTypes) =>
       )
     ]));
 
-export const tsForConfig = async (config: CompleteConfig, debug: (s: string) => void) => {
+export const tsForConfig = async (
+  config: CompleteConfig,
+  debug: (s: string) => void,
+  existingPool?: pg.Pool
+) => {
   const
     { schemas, db } = config,
-    pool = new pg.Pool(db),
+    pool = existingPool ?? new pg.Pool(db),
+    shouldClosePool = !existingPool,
     debugLogger = createDebugLogger(debug),
     queryFn = createQueryFunction(pool, {
       onQueryStart: debugLogger.onQueryStart,
@@ -144,6 +149,9 @@ export type Column = StructureMap[Table]['Column'];
 
   const customTypeSourceFiles = sourceFilesForCustomTypes(customTypes);
 
-  await pool.end();
+  // Only close the pool if we created it (not if we're reusing an existing one)
+  if (shouldClosePool) {
+    await pool.end();
+  }
   return { ts, customTypeSourceFiles };
 };

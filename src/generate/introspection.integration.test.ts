@@ -1,6 +1,6 @@
-import { PostgreSqlContainer, StartedPostgreSqlContainer } from '@testcontainers/postgresql';
 import { Pool } from 'pg';
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
+import { startTestDatabase, stopTestDatabase, getTestPool } from '../test-helpers/integration-db';
 import { relationsInSchema } from './tables';
 import type { Relation } from './tables';
 
@@ -17,47 +17,15 @@ import type { Relation } from './tables';
  * across different PostgreSQL features and edge cases.
  */
 describe('PostgreSQL Introspection - Integration Tests', () => {
-  let container: StartedPostgreSqlContainer;
   let pool: Pool;
 
   beforeAll(async () => {
-    console.log('Starting PostgreSQL container for introspection tests...');
-    container = await new PostgreSqlContainer('postgres:16-alpine')
-      .withDatabase('introspection_test')
-      .withUsername('test_user')
-      .withPassword('test_pass')
-      .start();
-    console.log('PostgreSQL container started');
-
-    pool = new Pool({
-      host: container.getHost(),
-      port: container.getPort(),
-      database: container.getDatabase(),
-      user: container.getUsername(),
-      password: container.getPassword(),
-    });
-
-    // Suppress expected shutdown errors
-    pool.on('error', (err) => {
-      const code = 'code' in err ? (err as { code?: string }).code : undefined;
-      if (code === '57P01' || code === 'ECONNREFUSED') {
-        console.log('Expected connection error during cleanup');
-      } else {
-        console.error('Unexpected pool error:', err);
-      }
-    });
+    await startTestDatabase();
+    pool = getTestPool();
   }, 60000);
 
   afterAll(async () => {
-    try {
-      await pool.end();
-    } catch (err) {
-      console.log('Pool cleanup error (expected during shutdown):', err instanceof Error ? err.message : String(err));
-    }
-
-    console.log('Stopping PostgreSQL container...');
-    await container.stop();
-    console.log('PostgreSQL container stopped');
+    await stopTestDatabase();
   }, 60000);
 
   /**

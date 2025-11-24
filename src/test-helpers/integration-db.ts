@@ -53,6 +53,35 @@ export async function startTestDatabase(): Promise<TestDatabase> {
 }
 
 /**
+ * Get the shared test database pool
+ * Throws if called before startTestDatabase()
+ */
+export function getTestPool(): Pool {
+  if (!globalPool) {
+    throw new Error('Test pool not initialized. Call startTestDatabase() first.');
+  }
+  return globalPool;
+}
+
+/**
+ * Get connection configuration for the test database
+ * Useful for passing to functions that need to create their own connections
+ * Throws if called before startTestDatabase()
+ */
+export function getTestConnectionConfig() {
+  if (!globalContainer) {
+    throw new Error('Test container not initialized. Call startTestDatabase() first.');
+  }
+  return {
+    host: globalContainer.getHost(),
+    port: globalContainer.getPort(),
+    database: globalContainer.getDatabase(),
+    user: globalContainer.getUsername(),
+    password: globalContainer.getPassword(),
+  };
+}
+
+/**
  * Clean up test database connections
  */
 export async function stopTestDatabase(): Promise<void> {
