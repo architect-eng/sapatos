@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { Pool } from 'pg';
 import { describe, it, expect, beforeAll, afterAll, beforeEach } from 'vitest';
 import {
@@ -9,7 +10,7 @@ import {
   insertUser,
   insertPost,
 } from '../test-helpers/integration-db';
-import { all, parent } from './core';
+import { all, parent, Parameter, SQLFragment, ParentColumn } from './core';
 import {
   select,
   selectOne,
@@ -24,10 +25,10 @@ type UsersTable = 'users';
 type PostsTable = 'posts';
 
 interface PostWhereable {
-  id?: number;
-  user_id?: number;
-  title?: string;
-  published?: boolean;
+  id?: number | Parameter<number> | SQLFragment | ParentColumn<any>;
+  user_id?: number | Parameter<number> | SQLFragment | ParentColumn<any>;
+  title?: string | Parameter<string> | SQLFragment | ParentColumn<any>;
+  published?: boolean | Parameter<boolean> | SQLFragment | ParentColumn<any>;
 }
 
 /**

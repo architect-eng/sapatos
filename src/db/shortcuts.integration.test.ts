@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { Pool } from 'pg';
 import { describe, it, expect, beforeAll, afterAll, beforeEach } from 'vitest';
 import {
@@ -10,7 +11,7 @@ import {
   insertPost,
   insertComment,
 } from '../test-helpers/integration-db';
-import { all, parent } from './core';
+import { all, parent, Parameter, SQLFragment, ParentColumn } from './core';
 import {
   insert,
   select,
@@ -52,19 +53,19 @@ interface UserWhereable {
 type PostsTable = 'posts';
 
 interface PostWhereable {
-  id?: number;
-  user_id?: number;
-  title?: string;
-  published?: boolean;
+  id?: number | Parameter<number> | SQLFragment | ParentColumn<any>;
+  user_id?: number | Parameter<number> | SQLFragment | ParentColumn<any>;
+  title?: string | Parameter<string> | SQLFragment | ParentColumn<any>;
+  published?: boolean | Parameter<boolean> | SQLFragment | ParentColumn<any>;
 }
 
 // Types for comments table
 type CommentsTable = 'comments';
 
 interface CommentWhereable {
-  id?: number;
-  post_id?: number;
-  user_id?: number;
+  id?: number | Parameter<number> | SQLFragment | ParentColumn<any>;
+  post_id?: number | Parameter<number> | SQLFragment | ParentColumn<any>;
+  user_id?: number | Parameter<number> | SQLFragment | ParentColumn<any>;
 }
 
 describe('shortcuts.ts - Integration Tests', () => {

@@ -824,7 +824,7 @@ describe('Type Generation - End-to-End Integration Tests', () => {
               * - \`int4\` in database
               * - \`NOT NULL\`, default: \`nextval('another_included_id_seq'::regclass)\`
               */
-              id?: number | db.Parameter<number> | db.SQLFragment | db.ParentColumn | db.SQLFragment<any, number | db.Parameter<number> | db.SQLFragment | db.ParentColumn>;
+              id?: number | db.Parameter<number> | db.SQLFragment | db.ParentColumn<any> | db.SQLFragment<any, number | db.Parameter<number> | db.SQLFragment | db.ParentColumn<any>>;
                 };
                 Insertable: {
                   /**
@@ -990,67 +990,67 @@ describe('Type Generation - End-to-End Integration Tests', () => {
               * - \`int4\` in database
               * - Nullable, no default
               */
-              age?: number | db.Parameter<number> | db.SQLFragment | db.ParentColumn | db.SQLFragment<any, number | db.Parameter<number> | db.SQLFragment | db.ParentColumn>;
+              age?: number | db.Parameter<number> | db.SQLFragment | db.ParentColumn<any> | db.SQLFragment<any, number | db.Parameter<number> | db.SQLFragment | db.ParentColumn<any>>;
                   /**
               * **comprehensive.created_at**
               * - \`timestamptz\` in database
               * - Nullable, default: \`now()\`
               */
-              created_at?: (db.TimestampTzString | Date) | db.Parameter<(db.TimestampTzString | Date)> | db.SQLFragment | db.ParentColumn | db.SQLFragment<any, (db.TimestampTzString | Date) | db.Parameter<(db.TimestampTzString | Date)> | db.SQLFragment | db.ParentColumn>;
+              created_at?: (db.TimestampTzString | Date) | db.Parameter<(db.TimestampTzString | Date)> | db.SQLFragment | db.ParentColumn<any> | db.SQLFragment<any, (db.TimestampTzString | Date) | db.Parameter<(db.TimestampTzString | Date)> | db.SQLFragment | db.ParentColumn<any>>;
                   /**
               * **comprehensive.email**
               * - \`text\` in database
               * - Nullable, no default
               */
-              email?: string | db.Parameter<string> | db.SQLFragment | db.ParentColumn | db.SQLFragment<any, string | db.Parameter<string> | db.SQLFragment | db.ParentColumn>;
+              email?: string | db.Parameter<string> | db.SQLFragment | db.ParentColumn<any> | db.SQLFragment<any, string | db.Parameter<string> | db.SQLFragment | db.ParentColumn<any>>;
                   /**
               * **comprehensive.id**
               * - \`int4\` in database
               * - \`NOT NULL\`, default: \`nextval('comprehensive_id_seq'::regclass)\`
               */
-              id?: number | db.Parameter<number> | db.SQLFragment | db.ParentColumn | db.SQLFragment<any, number | db.Parameter<number> | db.SQLFragment | db.ParentColumn>;
+              id?: number | db.Parameter<number> | db.SQLFragment | db.ParentColumn<any> | db.SQLFragment<any, number | db.Parameter<number> | db.SQLFragment | db.ParentColumn<any>>;
                   /**
               * **comprehensive.is_active**
               * - \`bool\` in database
               * - Nullable, default: \`true\`
               */
-              is_active?: boolean | db.Parameter<boolean> | db.SQLFragment | db.ParentColumn | db.SQLFragment<any, boolean | db.Parameter<boolean> | db.SQLFragment | db.ParentColumn>;
+              is_active?: boolean | db.Parameter<boolean> | db.SQLFragment | db.ParentColumn<any> | db.SQLFragment<any, boolean | db.Parameter<boolean> | db.SQLFragment | db.ParentColumn<any>>;
                   /**
               * **comprehensive.metadata**
               * - \`jsonb\` in database
               * - Nullable, no default
               */
-              metadata?: db.JSONValue | db.Parameter<db.JSONValue> | db.SQLFragment | db.ParentColumn | db.SQLFragment<any, db.JSONValue | db.Parameter<db.JSONValue> | db.SQLFragment | db.ParentColumn>;
+              metadata?: db.JSONValue | db.Parameter<db.JSONValue> | db.SQLFragment | db.ParentColumn<any> | db.SQLFragment<any, db.JSONValue | db.Parameter<db.JSONValue> | db.SQLFragment | db.ParentColumn<any>>;
                   /**
               * **comprehensive.name**
               * - \`text\` in database
               * - \`NOT NULL\`, no default
               */
-              name?: string | db.Parameter<string> | db.SQLFragment | db.ParentColumn | db.SQLFragment<any, string | db.Parameter<string> | db.SQLFragment | db.ParentColumn>;
+              name?: string | db.Parameter<string> | db.SQLFragment | db.ParentColumn<any> | db.SQLFragment<any, string | db.Parameter<string> | db.SQLFragment | db.ParentColumn<any>>;
                   /**
               * **comprehensive.score**
               * - \`numeric\` in database
               * - Nullable, no default
               */
-              score?: (number | db.NumericString) | db.Parameter<(number | db.NumericString)> | db.SQLFragment | db.ParentColumn | db.SQLFragment<any, (number | db.NumericString) | db.Parameter<(number | db.NumericString)> | db.SQLFragment | db.ParentColumn>;
+              score?: (number | db.NumericString) | db.Parameter<(number | db.NumericString)> | db.SQLFragment | db.ParentColumn<any> | db.SQLFragment<any, (number | db.NumericString) | db.Parameter<(number | db.NumericString)> | db.SQLFragment | db.ParentColumn<any>>;
                   /**
               * **comprehensive.status**
               * - \`status_enum\` in database
               * - \`NOT NULL\`, default: \`'pending'::status_enum\`
               */
-              status?: status_enum | db.Parameter<status_enum> | db.SQLFragment | db.ParentColumn | db.SQLFragment<any, status_enum | db.Parameter<status_enum> | db.SQLFragment | db.ParentColumn>;
+              status?: status_enum | db.Parameter<status_enum> | db.SQLFragment | db.ParentColumn<any> | db.SQLFragment<any, status_enum | db.Parameter<status_enum> | db.SQLFragment | db.ParentColumn<any>>;
                   /**
               * **comprehensive.tags**
               * - \`_text\` in database
               * - \`NOT NULL\`, default: \`'{}'::text[]\`
               */
-              tags?: string[] | db.Parameter<string[]> | db.SQLFragment | db.ParentColumn | db.SQLFragment<any, string[] | db.Parameter<string[]> | db.SQLFragment | db.ParentColumn>;
+              tags?: string[] | db.Parameter<string[]> | db.SQLFragment | db.ParentColumn<any> | db.SQLFragment<any, string[] | db.Parameter<string[]> | db.SQLFragment | db.ParentColumn<any>>;
                   /**
               * **comprehensive.updated_at**
               * - \`timestamptz\` in database
               * - Nullable, no default
               */
-              updated_at?: (db.TimestampTzString | Date) | db.Parameter<(db.TimestampTzString | Date)> | db.SQLFragment | db.ParentColumn | db.SQLFragment<any, (db.TimestampTzString | Date) | db.Parameter<(db.TimestampTzString | Date)> | db.SQLFragment | db.ParentColumn>;
+              updated_at?: (db.TimestampTzString | Date) | db.Parameter<(db.TimestampTzString | Date)> | db.SQLFragment | db.ParentColumn<any> | db.SQLFragment<any, (db.TimestampTzString | Date) | db.Parameter<(db.TimestampTzString | Date)> | db.SQLFragment | db.ParentColumn<any>>;
                 };
                 Insertable: {
                   /**
@@ -1216,7 +1216,7 @@ describe('Type Generation - End-to-End Integration Tests', () => {
               * - \`int4\` in database
               * - \`NOT NULL\`, default: \`nextval('excluded_table_id_seq'::regclass)\`
               */
-              id?: number | db.Parameter<number> | db.SQLFragment | db.ParentColumn | db.SQLFragment<any, number | db.Parameter<number> | db.SQLFragment | db.ParentColumn>;
+              id?: number | db.Parameter<number> | db.SQLFragment | db.ParentColumn<any> | db.SQLFragment<any, number | db.Parameter<number> | db.SQLFragment | db.ParentColumn<any>>;
                 };
                 Insertable: {
                   /**
@@ -1262,7 +1262,7 @@ describe('Type Generation - End-to-End Integration Tests', () => {
               * - \`int4\` in database
               * - \`NOT NULL\`, default: \`nextval('included_table_id_seq'::regclass)\`
               */
-              id?: number | db.Parameter<number> | db.SQLFragment | db.ParentColumn | db.SQLFragment<any, number | db.Parameter<number> | db.SQLFragment | db.ParentColumn>;
+              id?: number | db.Parameter<number> | db.SQLFragment | db.ParentColumn<any> | db.SQLFragment<any, number | db.Parameter<number> | db.SQLFragment | db.ParentColumn<any>>;
                 };
                 Insertable: {
                   /**
@@ -1356,31 +1356,31 @@ describe('Type Generation - End-to-End Integration Tests', () => {
               * - \`timestamptz\` in database
               * - Nullable, default: \`now()\`
               */
-              created_at?: (db.TimestampTzString | Date) | db.Parameter<(db.TimestampTzString | Date)> | db.SQLFragment | db.ParentColumn | db.SQLFragment<any, (db.TimestampTzString | Date) | db.Parameter<(db.TimestampTzString | Date)> | db.SQLFragment | db.ParentColumn>;
+              created_at?: (db.TimestampTzString | Date) | db.Parameter<(db.TimestampTzString | Date)> | db.SQLFragment | db.ParentColumn<any> | db.SQLFragment<any, (db.TimestampTzString | Date) | db.Parameter<(db.TimestampTzString | Date)> | db.SQLFragment | db.ParentColumn<any>>;
                   /**
               * **products.id**
               * - \`int4\` in database
               * - \`NOT NULL\`, default: \`nextval('products_id_seq'::regclass)\`
               */
-              id?: number | db.Parameter<number> | db.SQLFragment | db.ParentColumn | db.SQLFragment<any, number | db.Parameter<number> | db.SQLFragment | db.ParentColumn>;
+              id?: number | db.Parameter<number> | db.SQLFragment | db.ParentColumn<any> | db.SQLFragment<any, number | db.Parameter<number> | db.SQLFragment | db.ParentColumn<any>>;
                   /**
               * **products.in_stock**
               * - \`bool\` in database
               * - Nullable, default: \`true\`
               */
-              in_stock?: boolean | db.Parameter<boolean> | db.SQLFragment | db.ParentColumn | db.SQLFragment<any, boolean | db.Parameter<boolean> | db.SQLFragment | db.ParentColumn>;
+              in_stock?: boolean | db.Parameter<boolean> | db.SQLFragment | db.ParentColumn<any> | db.SQLFragment<any, boolean | db.Parameter<boolean> | db.SQLFragment | db.ParentColumn<any>>;
                   /**
               * **products.name**
               * - \`text\` in database
               * - \`NOT NULL\`, no default
               */
-              name?: string | db.Parameter<string> | db.SQLFragment | db.ParentColumn | db.SQLFragment<any, string | db.Parameter<string> | db.SQLFragment | db.ParentColumn>;
+              name?: string | db.Parameter<string> | db.SQLFragment | db.ParentColumn<any> | db.SQLFragment<any, string | db.Parameter<string> | db.SQLFragment | db.ParentColumn<any>>;
                   /**
               * **products.price**
               * - \`numeric\` in database
               * - \`NOT NULL\`, no default
               */
-              price?: (number | db.NumericString) | db.Parameter<(number | db.NumericString)> | db.SQLFragment | db.ParentColumn | db.SQLFragment<any, (number | db.NumericString) | db.Parameter<(number | db.NumericString)> | db.SQLFragment | db.ParentColumn>;
+              price?: (number | db.NumericString) | db.Parameter<(number | db.NumericString)> | db.SQLFragment | db.ParentColumn<any> | db.SQLFragment<any, (number | db.NumericString) | db.Parameter<(number | db.NumericString)> | db.SQLFragment | db.ParentColumn<any>>;
                 };
                 Insertable: {
                   /**
@@ -1474,7 +1474,7 @@ describe('Type Generation - End-to-End Integration Tests', () => {
               * - \`int4\` in database
               * - \`NOT NULL\`, default: \`nextval('some_table_id_seq'::regclass)\`
               */
-              id?: number | db.Parameter<number> | db.SQLFragment | db.ParentColumn | db.SQLFragment<any, number | db.Parameter<number> | db.SQLFragment | db.ParentColumn>;
+              id?: number | db.Parameter<number> | db.SQLFragment | db.ParentColumn<any> | db.SQLFragment<any, number | db.Parameter<number> | db.SQLFragment | db.ParentColumn<any>>;
                 };
                 Insertable: {
                   /**
@@ -1532,13 +1532,13 @@ describe('Type Generation - End-to-End Integration Tests', () => {
               * - \`int4\` in database
               * - \`NOT NULL\`, default: \`nextval('test_id_seq'::regclass)\`
               */
-              id?: number | db.Parameter<number> | db.SQLFragment | db.ParentColumn | db.SQLFragment<any, number | db.Parameter<number> | db.SQLFragment | db.ParentColumn>;
+              id?: number | db.Parameter<number> | db.SQLFragment | db.ParentColumn<any> | db.SQLFragment<any, number | db.Parameter<number> | db.SQLFragment | db.ParentColumn<any>>;
                   /**
               * **test.value**
               * - \`my_custom\` (base type: \`text\`) in database
               * - Nullable, no default
               */
-              value?: c.PgMy_custom | db.Parameter<c.PgMy_custom> | db.SQLFragment | db.ParentColumn | db.SQLFragment<any, c.PgMy_custom | db.Parameter<c.PgMy_custom> | db.SQLFragment | db.ParentColumn>;
+              value?: c.PgMy_custom | db.Parameter<c.PgMy_custom> | db.SQLFragment | db.ParentColumn<any> | db.SQLFragment<any, c.PgMy_custom | db.Parameter<c.PgMy_custom> | db.SQLFragment | db.ParentColumn<any>>;
                 };
                 Insertable: {
                   /**
@@ -1632,25 +1632,25 @@ describe('Type Generation - End-to-End Integration Tests', () => {
               * - \`int4\` in database
               * - \`NOT NULL\`, default: \`nextval('test_arrays_id_seq'::regclass)\`
               */
-              id?: number | db.Parameter<number> | db.SQLFragment | db.ParentColumn | db.SQLFragment<any, number | db.Parameter<number> | db.SQLFragment | db.ParentColumn>;
+              id?: number | db.Parameter<number> | db.SQLFragment | db.ParentColumn<any> | db.SQLFragment<any, number | db.Parameter<number> | db.SQLFragment | db.ParentColumn<any>>;
                   /**
               * **test_arrays.matrix**
               * - \`_int4\` in database
               * - Nullable, no default
               */
-              matrix?: number[] | db.Parameter<number[]> | db.SQLFragment | db.ParentColumn | db.SQLFragment<any, number[] | db.Parameter<number[]> | db.SQLFragment | db.ParentColumn>;
+              matrix?: number[] | db.Parameter<number[]> | db.SQLFragment | db.ParentColumn<any> | db.SQLFragment<any, number[] | db.Parameter<number[]> | db.SQLFragment | db.ParentColumn<any>>;
                   /**
               * **test_arrays.numbers**
               * - \`_int4\` in database
               * - Nullable, no default
               */
-              numbers?: number[] | db.Parameter<number[]> | db.SQLFragment | db.ParentColumn | db.SQLFragment<any, number[] | db.Parameter<number[]> | db.SQLFragment | db.ParentColumn>;
+              numbers?: number[] | db.Parameter<number[]> | db.SQLFragment | db.ParentColumn<any> | db.SQLFragment<any, number[] | db.Parameter<number[]> | db.SQLFragment | db.ParentColumn<any>>;
                   /**
               * **test_arrays.tags**
               * - \`_text\` in database
               * - \`NOT NULL\`, no default
               */
-              tags?: string[] | db.Parameter<string[]> | db.SQLFragment | db.ParentColumn | db.SQLFragment<any, string[] | db.Parameter<string[]> | db.SQLFragment | db.ParentColumn>;
+              tags?: string[] | db.Parameter<string[]> | db.SQLFragment | db.ParentColumn<any> | db.SQLFragment<any, string[] | db.Parameter<string[]> | db.SQLFragment | db.ParentColumn<any>>;
                 };
                 Insertable: {
                   /**
@@ -1756,19 +1756,19 @@ describe('Type Generation - End-to-End Integration Tests', () => {
               * - \`email_address\` (base type: \`text\`) in database
               * - \`NOT NULL\`, no default
               */
-              email?: c.PgEmail_address | db.Parameter<c.PgEmail_address> | db.SQLFragment | db.ParentColumn | db.SQLFragment<any, c.PgEmail_address | db.Parameter<c.PgEmail_address> | db.SQLFragment | db.ParentColumn>;
+              email?: c.PgEmail_address | db.Parameter<c.PgEmail_address> | db.SQLFragment | db.ParentColumn<any> | db.SQLFragment<any, c.PgEmail_address | db.Parameter<c.PgEmail_address> | db.SQLFragment | db.ParentColumn<any>>;
                   /**
               * **test_custom.id**
               * - \`int4\` in database
               * - \`NOT NULL\`, default: \`nextval('test_custom_id_seq'::regclass)\`
               */
-              id?: number | db.Parameter<number> | db.SQLFragment | db.ParentColumn | db.SQLFragment<any, number | db.Parameter<number> | db.SQLFragment | db.ParentColumn>;
+              id?: number | db.Parameter<number> | db.SQLFragment | db.ParentColumn<any> | db.SQLFragment<any, number | db.Parameter<number> | db.SQLFragment | db.ParentColumn<any>>;
                   /**
               * **test_custom.score**
               * - \`positive_integer\` (base type: \`int4\`) in database
               * - Nullable, no default
               */
-              score?: c.PgPositive_integer | db.Parameter<c.PgPositive_integer> | db.SQLFragment | db.ParentColumn | db.SQLFragment<any, c.PgPositive_integer | db.Parameter<c.PgPositive_integer> | db.SQLFragment | db.ParentColumn>;
+              score?: c.PgPositive_integer | db.Parameter<c.PgPositive_integer> | db.SQLFragment | db.ParentColumn<any> | db.SQLFragment<any, c.PgPositive_integer | db.Parameter<c.PgPositive_integer> | db.SQLFragment | db.ParentColumn<any>>;
                 };
                 Insertable: {
                   /**
@@ -1874,25 +1874,25 @@ describe('Type Generation - End-to-End Integration Tests', () => {
               * - \`text\` in database
               * - \`NOT NULL\`, no default
               */
-              first_name?: string | db.Parameter<string> | db.SQLFragment | db.ParentColumn | db.SQLFragment<any, string | db.Parameter<string> | db.SQLFragment | db.ParentColumn>;
+              first_name?: string | db.Parameter<string> | db.SQLFragment | db.ParentColumn<any> | db.SQLFragment<any, string | db.Parameter<string> | db.SQLFragment | db.ParentColumn<any>>;
                   /**
               * **test_generated.full_name**
               * - \`text\` in database
               * - Generated column
               */
-              full_name?: string | db.Parameter<string> | db.SQLFragment | db.ParentColumn | db.SQLFragment<any, string | db.Parameter<string> | db.SQLFragment | db.ParentColumn>;
+              full_name?: string | db.Parameter<string> | db.SQLFragment | db.ParentColumn<any> | db.SQLFragment<any, string | db.Parameter<string> | db.SQLFragment | db.ParentColumn<any>>;
                   /**
               * **test_generated.id**
               * - \`int4\` in database
               * - \`NOT NULL\`, default: \`nextval('test_generated_id_seq'::regclass)\`
               */
-              id?: number | db.Parameter<number> | db.SQLFragment | db.ParentColumn | db.SQLFragment<any, number | db.Parameter<number> | db.SQLFragment | db.ParentColumn>;
+              id?: number | db.Parameter<number> | db.SQLFragment | db.ParentColumn<any> | db.SQLFragment<any, number | db.Parameter<number> | db.SQLFragment | db.ParentColumn<any>>;
                   /**
               * **test_generated.last_name**
               * - \`text\` in database
               * - \`NOT NULL\`, no default
               */
-              last_name?: string | db.Parameter<string> | db.SQLFragment | db.ParentColumn | db.SQLFragment<any, string | db.Parameter<string> | db.SQLFragment | db.ParentColumn>;
+              last_name?: string | db.Parameter<string> | db.SQLFragment | db.ParentColumn<any> | db.SQLFragment<any, string | db.Parameter<string> | db.SQLFragment | db.ParentColumn<any>>;
                 };
                 Insertable: {
                   /**
@@ -1998,25 +1998,25 @@ describe('Type Generation - End-to-End Integration Tests', () => {
               * - \`jsonb\` in database
               * - \`NOT NULL\`, default: \`'{}'::jsonb\`
               */
-              config?: db.JSONValue | db.Parameter<db.JSONValue> | db.SQLFragment | db.ParentColumn | db.SQLFragment<any, db.JSONValue | db.Parameter<db.JSONValue> | db.SQLFragment | db.ParentColumn>;
+              config?: db.JSONValue | db.Parameter<db.JSONValue> | db.SQLFragment | db.ParentColumn<any> | db.SQLFragment<any, db.JSONValue | db.Parameter<db.JSONValue> | db.SQLFragment | db.ParentColumn<any>>;
                   /**
               * **test_json.id**
               * - \`int4\` in database
               * - \`NOT NULL\`, default: \`nextval('test_json_id_seq'::regclass)\`
               */
-              id?: number | db.Parameter<number> | db.SQLFragment | db.ParentColumn | db.SQLFragment<any, number | db.Parameter<number> | db.SQLFragment | db.ParentColumn>;
+              id?: number | db.Parameter<number> | db.SQLFragment | db.ParentColumn<any> | db.SQLFragment<any, number | db.Parameter<number> | db.SQLFragment | db.ParentColumn<any>>;
                   /**
               * **test_json.metadata**
               * - \`json\` in database
               * - \`NOT NULL\`, no default
               */
-              metadata?: db.JSONValue | db.Parameter<db.JSONValue> | db.SQLFragment | db.ParentColumn | db.SQLFragment<any, db.JSONValue | db.Parameter<db.JSONValue> | db.SQLFragment | db.ParentColumn>;
+              metadata?: db.JSONValue | db.Parameter<db.JSONValue> | db.SQLFragment | db.ParentColumn<any> | db.SQLFragment<any, db.JSONValue | db.Parameter<db.JSONValue> | db.SQLFragment | db.ParentColumn<any>>;
                   /**
               * **test_json.settings**
               * - \`jsonb\` in database
               * - Nullable, no default
               */
-              settings?: db.JSONValue | db.Parameter<db.JSONValue> | db.SQLFragment | db.ParentColumn | db.SQLFragment<any, db.JSONValue | db.Parameter<db.JSONValue> | db.SQLFragment | db.ParentColumn>;
+              settings?: db.JSONValue | db.Parameter<db.JSONValue> | db.SQLFragment | db.ParentColumn<any> | db.SQLFragment<any, db.JSONValue | db.Parameter<db.JSONValue> | db.SQLFragment | db.ParentColumn<any>>;
                 };
                 Insertable: {
                   /**
@@ -2146,31 +2146,31 @@ describe('Type Generation - End-to-End Integration Tests', () => {
               * - \`int4\` in database
               * - \`NOT NULL\`, default: \`nextval('test_nullability_id_seq'::regclass)\`
               */
-              id?: number | db.Parameter<number> | db.SQLFragment | db.ParentColumn | db.SQLFragment<any, number | db.Parameter<number> | db.SQLFragment | db.ParentColumn>;
+              id?: number | db.Parameter<number> | db.SQLFragment | db.ParentColumn<any> | db.SQLFragment<any, number | db.Parameter<number> | db.SQLFragment | db.ParentColumn<any>>;
                   /**
               * **test_nullability.optional_field**
               * - \`text\` in database
               * - Nullable, no default
               */
-              optional_field?: string | db.Parameter<string> | db.SQLFragment | db.ParentColumn | db.SQLFragment<any, string | db.Parameter<string> | db.SQLFragment | db.ParentColumn>;
+              optional_field?: string | db.Parameter<string> | db.SQLFragment | db.ParentColumn<any> | db.SQLFragment<any, string | db.Parameter<string> | db.SQLFragment | db.ParentColumn<any>>;
                   /**
               * **test_nullability.optional_number**
               * - \`int4\` in database
               * - Nullable, no default
               */
-              optional_number?: number | db.Parameter<number> | db.SQLFragment | db.ParentColumn | db.SQLFragment<any, number | db.Parameter<number> | db.SQLFragment | db.ParentColumn>;
+              optional_number?: number | db.Parameter<number> | db.SQLFragment | db.ParentColumn<any> | db.SQLFragment<any, number | db.Parameter<number> | db.SQLFragment | db.ParentColumn<any>>;
                   /**
               * **test_nullability.required_field**
               * - \`text\` in database
               * - \`NOT NULL\`, no default
               */
-              required_field?: string | db.Parameter<string> | db.SQLFragment | db.ParentColumn | db.SQLFragment<any, string | db.Parameter<string> | db.SQLFragment | db.ParentColumn>;
+              required_field?: string | db.Parameter<string> | db.SQLFragment | db.ParentColumn<any> | db.SQLFragment<any, string | db.Parameter<string> | db.SQLFragment | db.ParentColumn<any>>;
                   /**
               * **test_nullability.required_number**
               * - \`int4\` in database
               * - \`NOT NULL\`, no default
               */
-              required_number?: number | db.Parameter<number> | db.SQLFragment | db.ParentColumn | db.SQLFragment<any, number | db.Parameter<number> | db.SQLFragment | db.ParentColumn>;
+              required_number?: number | db.Parameter<number> | db.SQLFragment | db.ParentColumn<any> | db.SQLFragment<any, number | db.Parameter<number> | db.SQLFragment | db.ParentColumn<any>>;
                 };
                 Insertable: {
                   /**
