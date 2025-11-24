@@ -6,6 +6,7 @@ import type { Relation } from './introspection';
 import {
   transformCustomType,
   quoteIfIllegalIdentifier,
+  sanitizeTypeIdentifier,
   createColumnDoc,
   getColumnTypeInfo,
 } from './typeTransformation';
@@ -146,6 +147,32 @@ describe('typeTransformation Module', () => {
       it('quotes with special characters: user@domain → "user@domain"', () => {
         expect(quoteIfIllegalIdentifier('user@domain')).toBe('"user@domain"');
       });
+    });
+  });
+
+  describe('sanitizeTypeIdentifier', () => {
+    it('replaces dots with underscores: billing_service.billing_events → billing_service_billing_events', () => {
+      expect(sanitizeTypeIdentifier('billing_service.billing_events')).toBe('billing_service_billing_events');
+    });
+
+    it('replaces dots with underscores: auth.users → auth_users', () => {
+      expect(sanitizeTypeIdentifier('auth.users')).toBe('auth_users');
+    });
+
+    it('handles multiple dots: public.schema.table → public_schema_table', () => {
+      expect(sanitizeTypeIdentifier('public.schema.table')).toBe('public_schema_table');
+    });
+
+    it('preserves identifiers without dots: users → users', () => {
+      expect(sanitizeTypeIdentifier('users')).toBe('users');
+    });
+
+    it('preserves underscores: user_profile → user_profile', () => {
+      expect(sanitizeTypeIdentifier('user_profile')).toBe('user_profile');
+    });
+
+    it('handles mixed dots and underscores: my_schema.my_table → my_schema_my_table', () => {
+      expect(sanitizeTypeIdentifier('my_schema.my_table')).toBe('my_schema_my_table');
     });
   });
 

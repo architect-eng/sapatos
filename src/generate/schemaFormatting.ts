@@ -15,7 +15,7 @@
  */
 
 import type { Relation, UniqueIndexRow } from './introspection';
-import { quoteIfIllegalIdentifier } from './typeTransformation';
+import { quoteIfIllegalIdentifier, sanitizeTypeIdentifier } from './typeTransformation';
 
 /**
  * Interface containing structured data for a table/view relation
@@ -81,6 +81,7 @@ const schemaMappedArray = (arr: string[], suffix: string): string =>
 export const formatStructureMapEntry = (data: RelationData): string => {
   const { rel, schemaPrefix, selectables, JSONSelectables, whereables, insertables, updatables, uniqueIndexes, columns } = data;
   const tableName = `${schemaPrefix}${rel.name}`;
+  const sanitizedTypeName = sanitizeTypeIdentifier(tableName);
   const quotedColumns = columns.map(c => quoteIfIllegalIdentifier(c));
 
   return `    '${tableName}': {
@@ -106,7 +107,7 @@ export const formatStructureMapEntry = (data: RelationData): string => {
       Column: ${quotedColumns.length > 0 ?
         quotedColumns.join(' | ') :
         'never'};
-      SQL: ${tableName}SQLExpression;
+      SQL: ${sanitizedTypeName}SQLExpression;
     };`;
 };
 
@@ -144,8 +145,9 @@ export namespace ${rel.name} {
 export const formatSQLExpressionType = (data: RelationData): string => {
   const { schemaPrefix, rel } = data;
   const tableName = `${schemaPrefix}${rel.name}`;
+  const sanitizedTypeName = sanitizeTypeIdentifier(tableName);
 
-  return `type ${tableName}SQLExpression = '${tableName}' | db.ColumnNames<StructureMap['${tableName}']['Updatable'] | (keyof StructureMap['${tableName}']['Updatable'])[]> | db.ColumnValues<StructureMap['${tableName}']['Updatable']> | StructureMap['${tableName}']['Whereable'] | StructureMap['${tableName}']['Column'] | db.ParentColumn | db.GenericSQLExpression;`;
+  return `type ${sanitizedTypeName}SQLExpression = '${tableName}' | db.ColumnNames<StructureMap['${tableName}']['Updatable'] | (keyof StructureMap['${tableName}']['Updatable'])[]> | db.ColumnValues<StructureMap['${tableName}']['Updatable']> | StructureMap['${tableName}']['Whereable'] | StructureMap['${tableName}']['Column'] | db.ParentColumn | db.GenericSQLExpression;`;
 };
 
 // ============================================================================

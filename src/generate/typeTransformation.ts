@@ -97,6 +97,20 @@ export const quoteIfIllegalIdentifier = (identifier: string): string => {
 };
 
 /**
+ * Sanitize an identifier for use as a TypeScript type name
+ * Replaces dots (and other invalid characters) with underscores
+ *
+ * @param identifier - Type identifier (may contain schema.table notation)
+ * @returns Sanitized identifier safe for TypeScript type declarations
+ * @example
+ * sanitizeTypeIdentifier('billing_service.billing_events') // 'billing_service_billing_events'
+ * sanitizeTypeIdentifier('public.users') // 'public_users'
+ */
+export const sanitizeTypeIdentifier = (identifier: string): string => {
+  return identifier.replace(/\./g, '_');
+};
+
+/**
  * Create JSDoc comment for a column (if enabled in config)
  * @param config - Complete configuration
  * @param schemaName - Schema name

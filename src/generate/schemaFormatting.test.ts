@@ -134,7 +134,7 @@ describe('schemaFormatting Module', () => {
       const result = formatStructureMapEntry(data);
       expect(result).toContain("'auth.users': {");
       expect(result).toContain("Table: 'auth.users'");
-      expect(result).toContain('SQL: auth.usersSQLExpression');
+      expect(result).toContain('SQL: auth_usersSQLExpression');
     });
   });
 
@@ -275,10 +275,10 @@ describe('schemaFormatting Module', () => {
       expect(result).toContain('db.GenericSQLExpression');
     });
 
-    it('uses schema prefix when provided', () => {
+    it('sanitizes schema prefix in type name when provided', () => {
       const data = createTestRelationData({ schemaPrefix: 'auth.', schemaName: 'auth' });
       const result = formatSQLExpressionType(data);
-      expect(result).toContain('type auth.usersSQLExpression = ');
+      expect(result).toContain('type auth_usersSQLExpression = ');
       expect(result).toContain("'auth.users'");
     });
   });

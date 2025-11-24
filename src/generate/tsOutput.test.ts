@@ -336,8 +336,8 @@ describe('tsForConfig - Module Augmentation', () => {
     // Verify table name has schema prefix in StructureMap
     expect(ts).toContain("Table: 'public.users'");
 
-    // Verify SQLExpression type includes schema prefix
-    expect(ts).toContain("type public.usersSQLExpression");
+    // Verify SQLExpression type uses sanitized schema prefix (dots replaced with underscores)
+    expect(ts).toContain("type public_usersSQLExpression");
   });
 
   it('preserves schema version canary', async () => {
