@@ -278,6 +278,60 @@ mise run commit   # Runs all verifications including tests
 - Reporters: text, json, html
 - Run with: `npm run test:coverage`
 
+## Code Quality & Validation
+
+### Always Run Before Committing
+
+**CRITICAL**: Before committing any changes, ALWAYS run the complete validation suite:
+
+```bash
+# Full validation checklist (in order)
+npm run lint              # ✅ Must pass with 0 warnings
+npm run typecheck         # ✅ Must pass with no errors
+npm run build             # ✅ Must compile successfully
+npm run test              # ✅ All unit tests must pass
+npm run integration-tests # ✅ All integration tests must pass
+```
+
+Or use the pre-commit workflow:
+```bash
+mise run commit  # Runs: lint → typecheck → build → test
+```
+
+### Why Each Step Matters
+
+1. **`npm run lint`**
+   - Catches code style issues, unused variables, and common mistakes
+   - ESLint with strict rules and 0 warnings policy
+   - Fixes many issues automatically with `--fix`
+
+2. **`npm run typecheck`**
+   - Validates TypeScript types across the entire codebase
+   - Catches type errors that tests might miss
+   - Uses both `tsconfig.build.json` and `tsconfig.test.json`
+   - **Critical for test files**: Test files can have valid syntax but wrong types
+
+3. **`npm run build`**
+   - Ensures the code compiles to JavaScript
+   - Validates that all imports/exports are correct
+   - Required before publishing or deploying
+
+4. **`npm run test`**
+   - Runs unit tests
+   - Fast feedback on business logic
+   - Must pass before integration tests
+
+5. **`npm run integration-tests`**
+   - Runs integration tests with real PostgreSQL
+   - Validates end-to-end behavior
+   - Tests database interactions and schema generation
+
+### Common Pitfalls
+
+❌ **Don't skip typecheck** - Tests can pass but have type errors
+❌ **Don't skip lint** - Code might work but violate style rules
+❌ **Don't assume tests are enough** - Build and typecheck catch different issues
+
 ## Commit Conventions
 
 This project enforces [Conventional Commits](https://www.conventionalcommits.org/) for all commit messages. Commits are validated locally via git hooks (Husky + commitlint) and in CI for pull requests.
