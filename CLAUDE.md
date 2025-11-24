@@ -18,6 +18,22 @@ Sapatos is a TypeScript-PostgreSQL ORM that generates type-safe database types d
 - `npm run integration-tests` - Run integration tests with PostgreSQL testcontainers
 - `npm run integration-tests:watch` - Run integration tests in watch mode
 
+**PostgreSQL Version Configuration:**
+Integration tests use a configurable PostgreSQL version via the `POSTGRES_VERSION` environment variable:
+
+```bash
+# Default: PostgreSQL 17 (latest stable)
+npm run integration-tests
+
+# Test with specific version
+POSTGRES_VERSION=16 npm run integration-tests
+
+# Flexible formats supported
+POSTGRES_VERSION=15 npm run integration-tests              # -> postgres:15-alpine
+POSTGRES_VERSION=14-alpine npm run integration-tests       # -> postgres:14-alpine
+POSTGRES_VERSION=postgres:13-alpine npm run integration-tests  # -> postgres:13-alpine
+```
+
 ### Mise Tasks
 [Mise](https://mise.jdx.dev/) is used for task automation and environment management. Available tasks:
 
@@ -31,6 +47,10 @@ Sapatos is a TypeScript-PostgreSQL ORM that generates type-safe database types d
 
 ### CI/CD
 - GitHub Actions CI runs on Node 20.x, 22.x, 24.x
+- PostgreSQL version matrix: Tests against PostgreSQL 17, 16, 15, 14, 13
+- **Selective matrix strategy** (7 total jobs):
+  - All PostgreSQL versions (17, 16, 15, 14, 13) on Node 22.x
+  - All Node versions (20.x, 22.x, 24.x) on PostgreSQL 17
 - CI workflow steps: `npm ci` → `lint` → `typecheck` → `build` → `test` → `integration-tests`
 - Multiple workflows: master-ci (main pipeline), commitlint (PR validation), release (automated releases)
 - Git hooks via Husky: commit-msg validation using commitlint
@@ -231,12 +251,15 @@ Sapatos uses **Vitest 4.0.13** as its testing framework with separate configurat
 ### Test Infrastructure
 
 **Integration Test Helpers** (`src/test-helpers/integration-db.ts`):
-- Spins up PostgreSQL 16 Alpine container via testcontainers
+- Spins up configurable PostgreSQL Alpine container via testcontainers
+- **Default version**: PostgreSQL 17 (latest stable)
+- **Configurable via**: `POSTGRES_VERSION` environment variable
+- **Supported versions**: PostgreSQL 17, 16, 15, 14, 13 (and any valid postgres image)
 - Global container reuse across tests for performance
 - Helper functions:
   - `startTestDatabase()` - Creates/reuses container and connection pool
   - `stopTestDatabase()` - Cleans up container and connections
-  - `setupTestSchema()` - Creates test tables (users, posts)
+  - `setupTestSchema()` - Creates test tables (users, posts, comments)
   - `cleanTestSchema()` - Truncates tables between tests
 
 ### Running Tests

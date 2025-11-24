@@ -13,7 +13,23 @@ jobs:
 
     strategy:
       matrix:
-        node-version: [20.x, 22.x, 24.x]
+        include:
+          # Test all PostgreSQL versions on Node 22.x (stable)
+          - node-version: 22.x
+            postgres-version: "17"
+          - node-version: 22.x
+            postgres-version: "16"
+          - node-version: 22.x
+            postgres-version: "15"
+          - node-version: 22.x
+            postgres-version: "14"
+          - node-version: 22.x
+            postgres-version: "13"
+          # Test all Node versions on PostgreSQL 17 (latest stable)
+          - node-version: 20.x
+            postgres-version: "17"
+          - node-version: 24.x
+            postgres-version: "17"
 
     steps:
     - uses: actions/checkout@v6
@@ -25,7 +41,7 @@ jobs:
         cache: 'npm'
 
     - run: npm ci
-    
+
     - run: npm run lint
 
     - run: npm run typecheck
@@ -34,4 +50,7 @@ jobs:
 
     - run: npm run test
 
-    - run: npm run integration-tests
+    - name: Run integration tests with PostgreSQL ${{ matrix.postgres-version }}
+      run: npm run integration-tests
+      env:
+        POSTGRES_VERSION: ${{ matrix.postgres-version }}

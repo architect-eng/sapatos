@@ -10,13 +10,41 @@ let globalContainer: StartedPostgreSqlContainer | null = null;
 let globalPool: Pool | null = null;
 
 /**
+ * Get the PostgreSQL Docker image to use for testing
+ * Supports environment variable POSTGRES_VERSION with flexible formats:
+ * - "17" -> "postgres:17-alpine"
+ * - "17-alpine" -> "postgres:17-alpine"
+ * - "postgres:17-alpine" -> "postgres:17-alpine"
+ *
+ * Defaults to postgres:17-alpine (latest stable) if not specified
+ */
+function getPostgresImage(): string {
+  const version = process.env['POSTGRES_VERSION'];
+
+  // eslint-disable-next-line @typescript-eslint/strict-boolean-expressions
+  if (!version) {
+    return 'postgres:17-alpine';
+  }
+
+  // Already fully qualified (e.g., "postgres:17-alpine")
+  if (version.includes(':')) {
+    return version;
+  }
+
+  // Just version number or version-variant (e.g., "17" or "17-alpine")
+  const suffix = version.includes('-') ? '' : '-alpine';
+  return `postgres:${version}${suffix}`;
+}
+
+/**
  * Start a PostgreSQL container for integration tests
  * Reuses the same container across all tests for performance
  */
 export async function startTestDatabase(): Promise<TestDatabase> {
   if (!globalContainer) {
-    console.log('Starting PostgreSQL container...');
-    globalContainer = await new PostgreSqlContainer('postgres:18-alpine')
+    const postgresImage = getPostgresImage();
+    console.log(`Starting PostgreSQL container (${postgresImage})...`);
+    globalContainer = await new PostgreSqlContainer(postgresImage)
       .withDatabase('test_db')
       .withUsername('test_user')
       .withPassword('test_pass')
