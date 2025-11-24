@@ -8,7 +8,11 @@ import type { Config } from './config';
 import { generate } from ".";
 
 
-const recursivelyInterpolateEnvVars = (obj: unknown): unknown =>
+/**
+ * Recursively interpolates environment variables in strings using {{ VAR_NAME }} syntax.
+ * Exported for testing.
+ */
+export const recursivelyInterpolateEnvVars = (obj: unknown): unknown =>
   // string? => do the interpolation
   typeof obj === 'string' ?
     obj.replace(/\{\{\s*([^}\s]+)\s*\}\}/g, (_0, name: string) => {
@@ -28,7 +32,11 @@ const recursivelyInterpolateEnvVars = (obj: unknown): unknown =>
         // anything else (e.g. number)? => pass right through
         obj;
 
-void (async () => {
+/**
+ * Main CLI execution logic. Loads config from file and CLI args, then runs generation.
+ * Exported for testing.
+ */
+export const runCLI = async (): Promise<void> => {
   const
     configFile = 'sapatosconfig.json',
     configJSON = fs.existsSync(configFile) ? fs.readFileSync(configFile, { encoding: 'utf8' }) : '{}',
@@ -53,4 +61,7 @@ void (async () => {
   }
 
   await generate({ ...fileConfig as object, ...argsConfig as object } as Config);
-})();
+};
+
+// Execute CLI when run directly
+void runCLI();
