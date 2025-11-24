@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.3.1](https://github.com/architect-eng/sapatos/compare/v0.3.0...v0.3.1) (2025-11-24)
+
+
+### Bug Fixes
+
+* **generate:** replace dots with underscores in schema-prefixed SQLExpression type names ([a34e04f](https://github.com/architect-eng/sapatos/commit/a34e04f9868627dc2c7d39fa9f10aa8f9297c408))
+
 ## [0.3.0](https://github.com/architect-eng/sapatos/compare/v0.2.0...v0.3.0) (2025-11-24)
 
 
