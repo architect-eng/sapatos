@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.4.0](https://github.com/architect-eng/sapatos/compare/v0.3.1...v0.4.0) (2025-11-25)
+
+
+### Features
+
+* proper module augmentation implementation ([df5643c](https://github.com/architect-eng/sapatos/commit/df5643c99cccb9b167d5c3dab455c4035a2ba25a))
+
+
+### Bug Fixes
+
+* **generate:** nest generated table namespaces under schema name ([6fe7d70](https://github.com/architect-eng/sapatos/commit/6fe7d70dcdc25753e4c83b051a2641acc015a3de))
+
 ## [0.3.1](https://github.com/architect-eng/sapatos/compare/v0.3.0...v0.3.1) (2025-11-24)
 
 
