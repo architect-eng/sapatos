@@ -1,5 +1,4 @@
 
-import type * as pg from 'pg';
 import type {
   Column,
   ColumnForTable,
@@ -13,7 +12,8 @@ import type {
   UpdatableForTable,
   Whereable,
   WhereableForTable,
-} from './core';
+} from '@architect-eng/sapatos/schema';
+import type * as pg from 'pg';
 import {
   all,
   AllType,

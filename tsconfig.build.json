@@ -4,10 +4,6 @@
     "src/**/*.test.ts",
     "src/**/*.integration.test.ts",
     "src/test-helpers/**",
-    "src/typings/**",
     "node_modules"
-  ],
-  "compilerOptions": {
-    "paths": {}
-  }
+  ]
 }

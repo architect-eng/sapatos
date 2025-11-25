@@ -1,13 +1,14 @@
 
-import type { Whereable } from './core';
+
+import type { Whereable } from '@architect-eng/sapatos/schema';
 import {
-  SQLFragment,
-  ParentColumn,
   Parameter,
-  param,
-  sql,
+  ParentColumn,
   SQL,
+  SQLFragment,
+  param,
   self,
+  sql,
   vals,
 } from './core';
 import { mapWithSeparator } from './utils';

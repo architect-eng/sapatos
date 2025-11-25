@@ -1,6 +1,5 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import { describe, it, expect } from 'vitest';
-import { Default, all, sql, param, parent, Parameter, SQLFragment, ParentColumn } from './core';
+import { Default, all, sql, param, parent } from './core';
 import {
   insert,
   upsert,
@@ -40,10 +39,10 @@ interface TestUpdatable {
 }
 
 interface TestWhereable {
-  id?: number | Parameter<number> | SQLFragment | ParentColumn<any>;
-  name?: string | Parameter<string> | SQLFragment | ParentColumn<any>;
-  email?: string | Parameter<string> | SQLFragment | ParentColumn<any>;
-  age?: number | Parameter<number> | SQLFragment | ParentColumn<any>;
+  id?: number;
+  name?: string;
+  email?: string;
+  age?: number;
 }
 
 describe('shortcuts.ts', () => {
@@ -1143,15 +1142,15 @@ describe('shortcuts.ts', () => {
     type CommentsTable = 'comments';
 
     interface PostWhereable {
-      id?: number | Parameter<number> | SQLFragment | ParentColumn<any>;
-      user_id?: number | Parameter<number> | SQLFragment | ParentColumn<any>;
-      title?: string | Parameter<string> | SQLFragment | ParentColumn<any>;
+      id?: number;
+      user_id?: number;
+      title?: string;
     }
 
     interface CommentWhereable {
-      id?: number | Parameter<number> | SQLFragment | ParentColumn<any>;
-      post_id?: number | Parameter<number> | SQLFragment | ParentColumn<any>;
-      user_id?: number | Parameter<number> | SQLFragment | ParentColumn<any>;
+      id?: number;
+      post_id?: number;
+      user_id?: number;
     }
 
     it('should generate map mode lateral with single named subquery', () => {
@@ -1286,7 +1285,7 @@ describe('shortcuts.ts', () => {
         select('users' as TestTable, all, {
           lateral: {
             postCount: count('posts' as PostsTable, { user_id: parent('id') } as PostWhereable),
-            // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-explicit-any
             badQuery: undefined as any
           }
         });
@@ -1369,8 +1368,8 @@ describe('shortcuts.ts', () => {
     type PostsTable = 'posts';
 
     interface PostWhereable {
-      id?: number | Parameter<number> | SQLFragment | ParentColumn<any>;
-      user_id?: number | Parameter<number> | SQLFragment | ParentColumn<any>;
+      id?: number;
+      user_id?: number;
     }
 
     it('should support select shortcut in lateral', () => {
@@ -1587,14 +1586,14 @@ describe('shortcuts.ts', () => {
     type CommentsTable = 'comments';
 
     interface PostWhereable {
-      id?: number | Parameter<number> | SQLFragment | ParentColumn<any>;
-      user_id?: number | Parameter<number> | SQLFragment | ParentColumn<any>;
+      id?: number;
+      user_id?: number;
     }
 
     interface CommentWhereable {
-      id?: number | Parameter<number> | SQLFragment | ParentColumn<any>;
-      post_id?: number | Parameter<number> | SQLFragment | ParentColumn<any>;
-      user_id?: number | Parameter<number> | SQLFragment | ParentColumn<any>;
+      id?: number;
+      post_id?: number;
+      user_id?: number;
     }
 
     it('should handle nested laterals (2 levels: users → posts → comments)', () => {
@@ -1660,7 +1659,7 @@ describe('shortcuts.ts', () => {
     it('should work with lateral and main query groupBy/having', () => {
       const query = select('users' as TestTable, all, {
         lateral: {
-          postCount: count('posts' as PostsTable, { user_id: parent('id') } as { user_id?: number | Parameter<number> | SQLFragment | ParentColumn<any> })
+          postCount: count('posts' as PostsTable, { user_id: parent('id') } as { user_id?: number })
         },
         groupBy: ['id' as TestColumn],
         having: sql`COUNT(*) > ${param(0)}`
@@ -1677,7 +1676,7 @@ describe('shortcuts.ts', () => {
     it('should work with lateral and main query order/limit/offset', () => {
       const query = select('users' as TestTable, all, {
         lateral: {
-          postCount: count('posts' as PostsTable, { user_id: parent('id') } as { user_id?: number | Parameter<number> | SQLFragment | ParentColumn<any> })
+          postCount: count('posts' as PostsTable, { user_id: parent('id') } as { user_id?: number })
         },
         order: { by: 'name' as TestColumn, direction: 'ASC' },
         limit: 10,
@@ -1694,7 +1693,7 @@ describe('shortcuts.ts', () => {
     });
 
     it('should allow lateral subquery to have its own order/limit', () => {
-      const lateralQuery = select('posts' as PostsTable, { user_id: parent('id') } as { user_id?: number | Parameter<number> | SQLFragment | ParentColumn<any> }, {
+      const lateralQuery = select('posts' as PostsTable, { user_id: parent('id') } as { user_id?: number }, {
         order: { by: 'created_at' as 'id' | 'user_id', direction: 'DESC' },
         limit: 5
       });
@@ -1712,7 +1711,7 @@ describe('shortcuts.ts', () => {
     });
 
     it('should handle parent references in extras/computed columns', () => {
-      const lateralQuery = select('posts' as PostsTable, { user_id: parent('id') } as { user_id?: number | Parameter<number> | SQLFragment | ParentColumn<any> }, {
+      const lateralQuery = select('posts' as PostsTable, { user_id: parent('id') } as { user_id?: number }, {
         extras: {
           parentUserId: sql`${parent('id')}`
         }
@@ -1737,7 +1736,7 @@ describe('shortcuts.ts', () => {
       ];
 
       for (const condition of conditions) {
-        const lateralQuery = select('posts' as PostsTable, condition as { user_id?: number | Parameter<number> | SQLFragment | ParentColumn<any> });
+        const lateralQuery = select('posts' as PostsTable, condition as { user_id?: number });
         const query = select('users' as TestTable, all, {
           lateral: { posts: lateralQuery }
         });
@@ -1750,7 +1749,7 @@ describe('shortcuts.ts', () => {
     it('should prevent passthrough mode when columns option is provided', () => {
       // Type system should prevent this, but we verify behavior
       // With columns specified, lateral must be a map (not passthrough)
-      const lateralQuery = count('posts' as PostsTable, { user_id: parent('id') } as { user_id?: number | Parameter<number> | SQLFragment | ParentColumn<any> });
+      const lateralQuery = count('posts' as PostsTable, { user_id: parent('id') } as { user_id?: number });
 
       const query = select('users' as TestTable, all, {
         columns: ['id', 'name'] as TestColumn[],
@@ -1770,7 +1769,7 @@ describe('shortcuts.ts', () => {
     });
 
     it('should prevent passthrough mode when extras option is provided', () => {
-      const lateralQuery = count('posts' as PostsTable, { user_id: parent('id') } as { user_id?: number | Parameter<number> | SQLFragment | ParentColumn<any> });
+      const lateralQuery = count('posts' as PostsTable, { user_id: parent('id') } as { user_id?: number });
 
       const query = select('users' as TestTable, all, {
         extras: {
@@ -1791,8 +1790,8 @@ describe('shortcuts.ts', () => {
     it('should handle multiple laterals referencing same parent column', () => {
       const query = select('users' as TestTable, all, {
         lateral: {
-          posts: select('posts' as PostsTable, { user_id: parent('id') } as { user_id?: number | Parameter<number> | SQLFragment | ParentColumn<any> }),
-          postCount: count('posts' as PostsTable, { user_id: parent('id') } as { user_id?: number | Parameter<number> | SQLFragment | ParentColumn<any> }),
+          posts: select('posts' as PostsTable, { user_id: parent('id') } as { user_id?: number }),
+          postCount: count('posts' as PostsTable, { user_id: parent('id') } as { user_id?: number }),
           comments: select('comments' as CommentsTable, { user_id: parent('id') } as CommentWhereable),
           commentCount: count('comments' as CommentsTable, { user_id: parent('id') } as CommentWhereable)
         }
@@ -1813,7 +1812,7 @@ describe('shortcuts.ts', () => {
     it('should handle lateral with DISTINCT on main query', () => {
       const query = select('users' as TestTable, all, {
         lateral: {
-          postCount: count('posts' as PostsTable, { user_id: parent('id') } as { user_id?: number | Parameter<number> | SQLFragment | ParentColumn<any> })
+          postCount: count('posts' as PostsTable, { user_id: parent('id') } as { user_id?: number })
         },
         distinct: true
       });
@@ -1828,7 +1827,7 @@ describe('shortcuts.ts', () => {
     it('should handle lateral with lock option on main query', () => {
       const query = select('users' as TestTable, all, {
         lateral: {
-          postCount: count('posts' as PostsTable, { user_id: parent('id') } as { user_id?: number | Parameter<number> | SQLFragment | ParentColumn<any> })
+          postCount: count('posts' as PostsTable, { user_id: parent('id') } as { user_id?: number })
         },
         lock: { for: 'UPDATE' }
       });

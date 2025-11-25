@@ -1,4 +1,11 @@
 
+
+import type {
+  Column,
+  Table,
+  Updatable,
+  Whereable,
+} from '@architect-eng/sapatos/schema';
 import type * as pg from 'pg';
 import { getConfig, SQLQuery } from './config';
 import { isPOJO, NoInfer } from './utils';
@@ -33,140 +40,6 @@ export type AllType = typeof all;
 export type JSONValue = null | boolean | number | string | JSONObject | JSONArray;
 export type JSONObject = { [k: string]: JSONValue };
 export type JSONArray = JSONValue[];
-
-/**
- * Generic structure interface that all table type definitions must conform to.
- * Used for module augmentation to enable multi-database support.
- * Uses `any` types to allow flexibility in type assignments.
- */
-export interface GenericSQLStructure {
-  Table: string;
-  Selectable: Record<string, unknown>;
-  JSONSelectable: Record<string, unknown>;
-  Whereable: Record<string, unknown>;
-  Insertable: Record<string, unknown>;
-  Updatable: Record<string, unknown>;
-  UniqueIndex: string;
-  Column: string;
-  SQL: unknown;
-}
-
-/**
- * StructureMap is the central registry of all table type definitions.
- * Generated schema files augment this interface to add their table types.
- *
- * Usage in generated code:
- * ```typescript
- * declare module '@architect-eng/sapatos/db' {
- *   interface StructureMap {
- *     'users': { Table: 'users'; Selectable: {...}; ... };
- *   }
- * }
- * ```
- *
- * The index signature provides fallback types when no schema is generated,
- * allowing the runtime code to compile. Specific table entries override this.
- */
-export interface StructureMap {
-  /* eslint-disable @typescript-eslint/no-explicit-any */
-  [tableName: string]: {
-    Table: string;
-    Selectable: Record<string, any>;
-    JSONSelectable: Record<string, any>;
-    Whereable: Record<string, any>;
-    Insertable: Record<string, any>;
-    Updatable: Record<string, any>;
-    UniqueIndex: string;
-    Column: string;
-    SQL: any;
-  };
-  /* eslint-enable @typescript-eslint/no-explicit-any */
-}
-
-// === StructureMap-derived types ===
-
-/**
- * Union of all registered table names.
- * With the index signature, this is `string`.
- */
-export type Table = keyof StructureMap & string;
-
-/**
- * Union of all Selectable types across all tables.
- */
-export type Selectable = StructureMap[Table]['Selectable'];
-
-/**
- * Union of all JSONSelectable types across all tables.
- */
-export type JSONSelectable = StructureMap[Table]['JSONSelectable'];
-
-/**
- * Union of all Whereable types across all tables.
- */
-export type Whereable = StructureMap[Table]['Whereable'];
-
-/**
- * Union of all Insertable types across all tables.
- */
-export type Insertable = StructureMap[Table]['Insertable'];
-
-/**
- * Union of all Updatable types across all tables.
- */
-export type Updatable = StructureMap[Table]['Updatable'];
-
-/**
- * Union of all UniqueIndex types across all tables.
- */
-export type UniqueIndex = StructureMap[Table]['UniqueIndex'];
-
-/**
- * Union of all Column types across all tables.
- */
-export type Column = StructureMap[Table]['Column'];
-
-// === Lookup types (per-table type extraction) ===
-
-/**
- * Extract the Selectable type for a specific table.
- */
-export type SelectableForTable<T extends Table> = StructureMap[T]['Selectable'];
-
-/**
- * Extract the JSONSelectable type for a specific table.
- */
-export type JSONSelectableForTable<T extends Table> = StructureMap[T]['JSONSelectable'];
-
-/**
- * Extract the Whereable type for a specific table.
- */
-export type WhereableForTable<T extends Table> = StructureMap[T]['Whereable'];
-
-/**
- * Extract the Insertable type for a specific table.
- */
-export type InsertableForTable<T extends Table> = StructureMap[T]['Insertable'];
-
-/**
- * Extract the Updatable type for a specific table.
- */
-export type UpdatableForTable<T extends Table> = StructureMap[T]['Updatable'];
-
-/**
- * Extract the UniqueIndex type for a specific table.
- */
-export type UniqueIndexForTable<T extends Table> = StructureMap[T]['UniqueIndex'];
-
-/**
- * Extract the Column type for a specific table.
- */
-export type ColumnForTable<T extends Table> = StructureMap[T]['Column'];
-
-/**
- * Extract the SQL type for a specific table.
- */
-export type SQLForTable<T extends Table> = StructureMap[T]['SQL'];
 
 /**
  * `int8` or `numeric` value represented as a string
@@ -246,11 +119,7 @@ export const toBuffer = strict((ba: ByteArrayString) => Buffer.from(ba.slice(2),
  * stringified or cast to `json` (again irrespective of the configuration
  * parameters `castArrayParamsToJson` and `castObjectParamsToJson`).
  */
-export class Parameter<T = unknown> {
-  // @ts-expect-error -- make it a nominal type
-  private readonly name = 'Parameter';
-  constructor(public value: T, public cast?: boolean | string) { }
-}
+export class Parameter<T = unknown> { constructor(public value: T, public cast?: boolean | string) { } }
 
 /**
  * Returns a `Parameter` instance, which compiles to a numbered query parameter
@@ -273,11 +142,7 @@ export function param<T = unknown>(x: T, cast?: boolean | string) { return new P
  * Compiles to the wrapped string value, as is, which may enable SQL injection
  * attacks.
  */
-export class DangerousRawString {
-  // @ts-expect-error -- make it a nominal type
-  private readonly name = 'DangerousRawString';
-  constructor(public value: string) { }
-}
+export class DangerousRawString { constructor(public value: string) { } }
 
 /**
  * 💥💥💣 **DANGEROUS** 💣💥💥
@@ -296,11 +161,7 @@ export function raw(x: string) { return new DangerousRawString(x); }
  * list of array values (for use in a `SELECT` query) or object keys (for use
  * in an `INSERT`, `UPDATE` or `UPSERT` query, alongside `ColumnValues`).
  */
-export class ColumnNames<T> {
-  // @ts-expect-error -- make it a nominal type
-  private readonly name = 'ColumnNames';
-  constructor(public value: T) { }
-}
+export class ColumnNames<T> { constructor(public value: T) { } }
 /**
  * Returns a `ColumnNames` instance, wrapping either an array or an object.
  * `ColumnNames` compiles to a quoted, comma-separated list of array values (for
@@ -313,11 +174,7 @@ export function cols<T>(x: T) { return new ColumnNames<T>(x); }
  * Compiles to a quoted, comma-separated list of object keys for use in an
  * `INSERT`, `UPDATE` or `UPSERT` query, alongside `ColumnNames`.
  */
-export class ColumnValues<T> {
-  // @ts-expect-error -- make it a nominal type
-  private readonly name = 'ColumnValues';
-  constructor(public value: T) { }
-}
+export class ColumnValues<T> { constructor(public value: T) { } }
 /**
  * Returns a ColumnValues instance, wrapping an object. ColumnValues compiles to
  * a quoted, comma-separated list of object keys for use in an INSERT, UPDATE
@@ -329,11 +186,7 @@ export function vals<T>(x: T) { return new ColumnValues<T>(x); }
  * Compiles to the name of the column it wraps in the table of the parent query.
  * @param value The column name
  */
-export class ParentColumn<T extends Column | undefined = Column | undefined> {
-  // @ts-expect-error -- make it a nominal type
-  private readonly name = 'ParentColumn';
-  constructor(public value?: T) { }
-}
+export class ParentColumn<T extends Column | undefined = Column | undefined> { constructor(public value?: T) { } }
 /**
  * Returns a `ParentColumn` instance, wrapping a column name, which compiles to
  * that column name of the table of the parent query.
@@ -373,8 +226,6 @@ export function sql<
 let preparedNameSeq = 0;
 
 export class SQLFragment<RunResult = pg.QueryResult['rows'], Constraint = never> {
-  // @ts-expect-error -- make it a nominal type
-  private readonly name = 'SQLFragment';
   protected constraint?: Constraint;
 
   /**

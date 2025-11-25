@@ -1,29 +1,28 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import { Pool } from 'pg';
-import { describe, it, expect, beforeAll, afterAll, beforeEach } from 'vitest';
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import {
+  cleanTestSchema,
+  insertComment,
+  insertPost,
+  insertUser,
+  setupTestSchema,
   startTestDatabase,
   stopTestDatabase,
-  setupTestSchema,
-  cleanTestSchema,
   TestDatabase,
-  insertUser,
-  insertPost,
-  insertComment,
 } from '../test-helpers/integration-db';
-import { all, parent, Parameter, SQLFragment, ParentColumn } from './core';
+import { all, parent } from './core';
 import {
-  insert,
-  select,
-  selectOne,
-  selectExactlyOne,
-  update,
-  deletes,
-  upsert,
   count,
-  sum,
+  deletes,
+  insert,
   max,
   NotExactlyOneError,
+  select,
+  selectExactlyOne,
+  selectOne,
+  sum,
+  update,
+  upsert,
 } from './shortcuts';
 
 // Types for our test tables
@@ -53,19 +52,19 @@ interface UserWhereable {
 type PostsTable = 'posts';
 
 interface PostWhereable {
-  id?: number | Parameter<number> | SQLFragment | ParentColumn<any>;
-  user_id?: number | Parameter<number> | SQLFragment | ParentColumn<any>;
-  title?: string | Parameter<string> | SQLFragment | ParentColumn<any>;
-  published?: boolean | Parameter<boolean> | SQLFragment | ParentColumn<any>;
+  id?: number;
+  user_id?: number;
+  title?: string;
+  published?: boolean;
 }
 
 // Types for comments table
 type CommentsTable = 'comments';
 
 interface CommentWhereable {
-  id?: number | Parameter<number> | SQLFragment | ParentColumn<any>;
-  post_id?: number | Parameter<number> | SQLFragment | ParentColumn<any>;
-  user_id?: number | Parameter<number> | SQLFragment | ParentColumn<any>;
+  id?: number;
+  post_id?: number;
+  user_id?: number;
 }
 
 describe('shortcuts.ts - Integration Tests', () => {

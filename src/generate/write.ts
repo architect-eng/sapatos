@@ -2,7 +2,6 @@
 
 import * as fs from 'fs';
 import * as path from 'path';
-import * as pg from 'pg';
 import { Config, finaliseConfig } from './config';
 import { header } from './header';
 import { tsForConfig } from './tsOutput';
@@ -11,9 +10,8 @@ import { tsForConfig } from './tsOutput';
 /**
  * Generate a schema and supporting files and folders given a configuration.
  * @param suppliedConfig An object approximately matching `sapatosconfig.json`.
- * @param existingPool Optional existing PostgreSQL pool to reuse (useful in tests to avoid creating multiple pools).
  */
-export const generate = async (suppliedConfig: Config, existingPool?: pg.Pool) => {
+export const generate = async (suppliedConfig: Config) => {
   const
     config = finaliseConfig(suppliedConfig),
     log = config.progressListener === true ? console.log :
@@ -23,9 +21,9 @@ export const generate = async (suppliedConfig: Config, existingPool?: pg.Pool) =
     debug = config.debugListener === true ? console.log :
       (config.debugListener !== false ? config.debugListener : (() => void 0)),
 
-    { ts, customTypeSourceFiles } = await tsForConfig(config, debug, existingPool),
+    { ts, customTypeSourceFiles } = await tsForConfig(config, debug),
 
-    folderName = 'sapatos',
+    folderName = '@architect-eng/sapatos',
     schemaName = 'schema' + config.outExt,
     customFolderName = 'custom',
     customTypesIndexName = 'index' + config.outExt,

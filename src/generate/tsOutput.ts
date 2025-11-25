@@ -3,18 +3,21 @@
 import * as pg from 'pg';
 import type { SchemaVersionCanary } from "../db/canary";
 import type { CompleteConfig } from './config';
-import { CustomTypes, CustomTypeRegistry } from './customTypes';
-import { createQueryFunction, createDebugLogger, createExitOnErrorHandler } from './database';
 import { enumDataForSchema, enumTypesForEnumData } from './enums';
 import { header } from './header';
 import {
-  RelationData,
+  Relation,
   relationsInSchema,
-  dataForRelationInSchema,
-  structureMapEntryForRelation,
-  schemaNamespacesForAllRelations,
-  sqlExpressionTypeForRelation,
+  definitionForRelationInSchema,
+  crossTableTypesForTables,
+  crossSchemaTypesForAllTables,
+  crossSchemaTypesForSchemas,
 } from './tables';
+
+
+export interface CustomTypes {
+  [name: string]: string;  // any, or TS type for domain's base type
+}
 
 const
   canaryVersion: SchemaVersionCanary['version'] = 105,
@@ -45,22 +48,29 @@ const sourceFilesForCustomTypes = (customTypes: CustomTypes) =>
       )
     ]));
 
-export const tsForConfig = async (
-  config: CompleteConfig,
-  debug: (s: string) => void,
-  existingPool?: pg.Pool
-) => {
+function indentAll(level: number, s: string) {
+  if (level === 0) return s;
+  return s.replace(/^/gm, ' '.repeat(level));
+}
+
+export const tsForConfig = async (config: CompleteConfig, debug: (s: string) => void) => {
+  let querySeq = 0;
   const
     { schemas, db } = config,
-    pool = existingPool ?? new pg.Pool(db),
-    shouldClosePool = !existingPool,
-    debugLogger = createDebugLogger(debug),
-    queryFn = createQueryFunction(pool, {
-      onQueryStart: debugLogger.onQueryStart,
-      onQueryComplete: debugLogger.onQueryComplete,
-      onQueryError: createExitOnErrorHandler(),
-    }),
-    registry = new CustomTypeRegistry(),
+    pool = new pg.Pool(db),
+    queryFn = async (query: pg.QueryConfig, seq = querySeq++) => {
+      try {
+        debug(`>>> query ${String(seq)} >>>\n${query.text.replace(/^\s+|\s+$/mg, '')}\n+ ${JSON.stringify(query.values)}\n`);
+        const result = await pool.query(query);
+        debug(`<<< result ${String(seq)} <<<\n${JSON.stringify(result, null, 2)}\n`);
+        return result;
+
+      } catch (e) {
+        console.log(`*** error ${String(seq)} ***`, e);
+        process.exit(1);
+      }
+    },
+    customTypes = {},
     schemaNames = Object.keys(schemas),
     schemaData = (await Promise.all(
       schemaNames.map(async schema => {
@@ -72,53 +82,43 @@ export const tsForConfig = async (
               .filter(rel => rules.include === '*' || rules.include.indexOf(rel.name) >= 0)
               .filter(rel => rules.exclude.indexOf(rel.name) < 0),
           enums = await enumDataForSchema(schema, queryFn),
-          tableData = await Promise.all(tables.map(async table =>
-            dataForRelationInSchema(table, schema, enums, registry, config, queryFn)));
+          tableDefs = await Promise.all(tables.map(async table =>
+            definitionForRelationInSchema(table, schema, enums, customTypes, config, queryFn))),
+          schemaIsUnprefixed = schema === config.unprefixedSchema,
+          none = '/* (none) */',
+          schemaDef = `/* === schema: ${schema} === */\n` +
+            (schemaIsUnprefixed ? '' : `\nexport namespace ${schema} {\n`) +
+            indentAll(schemaIsUnprefixed ? 0 : 2,
+              `\n/* --- enums --- */\n` +
+              (enumTypesForEnumData(enums) || none) +
+              `\n\n/* --- tables --- */\n` +
+              (tableDefs.join('\n') || none) +
+              `\n\n/* --- aggregate types --- */\n` +
+              (schemaIsUnprefixed ?
+                `\nexport namespace ${schema} {` + (indentAll(2, crossTableTypesForTables(tables) || none)) + '\n}\n' :
+                (crossTableTypesForTables(tables) || none))
+            ) + '\n' +
+            (schemaIsUnprefixed ? '' : `}\n`);
 
-        return { schema, tables, tableData, enums };
+        return { schemaDef, tables };
       }))
     ),
-    allTableData = ([] as RelationData[]).concat(...schemaData.map(r => r.tableData)),
-    customTypes = registry.getRegisteredTypes(),
-    hasCustomTypes = Object.keys(customTypes).length > 0;
+    schemaDefs = schemaData.map(r => r.schemaDef),
+    schemaTables = schemaData.map(r => r.tables),
+    allTables = ([] as Relation[]).concat(...schemaTables),
+    hasCustomTypes = Object.keys(customTypes).length > 0,
+    ts = header() + declareModule('@architect-eng/sapatos/schema',
+      `\nimport type * as db from '@architect-eng/sapatos/db';\n` +
+      (hasCustomTypes ? `import type * as c from '@architect-eng/sapatos/custom';\n` : ``) +
+      versionCanary + '\n\n' +
+      schemaDefs.join('\n\n') +
+      `\n\n/* === global aggregate types === */\n` +
+      crossSchemaTypesForSchemas(schemaNames) +
+      `\n\n/* === lookups === */\n` +
+      crossSchemaTypesForAllTables(allTables, config.unprefixedSchema)
+    ),
+    customTypeSourceFiles = sourceFilesForCustomTypes(customTypes);
 
-  // Generate StructureMap entries
-  const structureMapEntries = allTableData.map(data => structureMapEntryForRelation(data)).join('\n');
-
-  // Generate SQLExpression types (needed by StructureMap)
-  const sqlExpressionTypes = allTableData.map(data => sqlExpressionTypeForRelation(data)).join('\n  ');
-
-  // Generate namespace aliases (for backward compatibility, grouped by schema)
-  const namespaceAliases = schemaNamespacesForAllRelations(allTableData, config.unprefixedSchema);
-
-  // Generate enum types (only if there are actual enums)
-  const enumTypes = schemaData
-    .map(({ enums }) => Object.keys(enums).length > 0 ? enumTypesForEnumData(enums) : '')
-    .filter(s => s.trim().length > 0)
-    .join('\n\n');
-
-  // Note: Lookup types and union types are now in the runtime module (src/db/core.ts)
-  // They are derived from StructureMap which is augmented by generated code
-
-  const ts = header() + declareModule('@architect-eng/sapatos/db',
-    (hasCustomTypes ? `import type * as c from '@architect-eng/sapatos/custom';\n` : ``) +
-    versionCanary + '\n\n' +
-    (enumTypes ? `/* --- enums --- */\n${enumTypes}\n\n` : '') +
-    `/* --- SQLExpression helper types --- */\n` +
-    sqlExpressionTypes + '\n\n' +
-    `/* --- StructureMap augmentation --- */\n` +
-    `interface StructureMap {\n` +
-    structureMapEntries + '\n' +
-    `}\n\n` +
-    `/* --- Backward compatible namespace aliases --- */\n` +
-    namespaceAliases
-  );
-
-  const customTypeSourceFiles = sourceFilesForCustomTypes(customTypes);
-
-  // Only close the pool if we created it (not if we're reusing an existing one)
-  if (shouldClosePool) {
-    await pool.end();
-  }
+  await pool.end();
   return { ts, customTypeSourceFiles };
 };
