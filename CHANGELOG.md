@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.5.3](https://github.com/architect-eng/sapatos/compare/v0.5.2...v0.5.3) (2025-11-25)
+
+
+### Bug Fixes
+
+* **factory:** type createSapatosDb return values with explicit schema types ([3703a7b](https://github.com/architect-eng/sapatos/commit/3703a7b131dff90b6f8fb8c4c953f2f3de1813d9))
+
 ## [0.5.2](https://github.com/architect-eng/sapatos/compare/v0.5.1...v0.5.2) (2025-11-25)
 
 
