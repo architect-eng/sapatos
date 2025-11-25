@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.5.2](https://github.com/architect-eng/sapatos/compare/v0.5.1...v0.5.2) (2025-11-25)
+
+
+### Bug Fixes
+
+* **generate:** export custom types from barrel file ([306e7a3](https://github.com/architect-eng/sapatos/commit/306e7a33c70b176671a2507e37107a8e880e54ea))
+* **generate:** use type aliases instead of interfaces for BaseSchema compatibility ([f2798a6](https://github.com/architect-eng/sapatos/commit/f2798a6844f93552048fa16864480a544153e823))
+
 ## [0.5.1](https://github.com/architect-eng/sapatos/compare/v0.5.0...v0.5.1) (2025-11-25)
 
 
