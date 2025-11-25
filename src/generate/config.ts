@@ -46,7 +46,7 @@ export type CompleteConfig = RequiredConfig & OptionalConfig;
 
 const defaultConfig: Config = {
   outDir: '.',
-  outExt: '.d.ts',
+  outExt: '.ts',  // Changed from '.d.ts' for explicit exports
   schemas: { public: { include: '*', exclude: [] } },
   debugListener: false,
   progressListener: false,

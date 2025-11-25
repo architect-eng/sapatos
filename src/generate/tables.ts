@@ -212,6 +212,7 @@ export const definitionForRelationInSchema = async (
  * **${schemaPrefix}${rel.name}**
  * - ${friendlyRelType} in database
  */` : ``,
+    // Note: Namespaces already have 'export' keyword - this is required for explicit module exports
     tableDef = `${tableComment}
 export namespace ${rel.name} {
   export type Table = '${schemaPrefix}${rel.name}';
@@ -283,6 +284,35 @@ export type ${thingable}ForTable<T extends Table> = ${allTables.length === 0 ? '
   "${rel.schema === unprefixedSchema ? '' : `${rel.schema}.`}${rel.name}": ${rel.schema === unprefixedSchema ? '' : `${rel.schema}.`}${rel.name}.${thingable};`).join('')}
 }[T]`};
 `).join('');
+
+/**
+ * Generate the Schema interface that maps table names to their type definitions.
+ * This interface extends db.BaseSchema and enables createSapatosDb<Schema>() usage.
+ */
+export const generateSchemaInterface = (tables: Relation[], unprefixedSchema: string | null): string => {
+  const tableEntries = tables.map(t => {
+    const fullName = t.schema === unprefixedSchema ? t.name : `${t.schema}.${t.name}`;
+    const ns = t.schema === unprefixedSchema ? t.name : `${t.schema}.${t.name}`;
+    return `    '${fullName}': {
+      Table: ${ns}.Table;
+      Selectable: ${ns}.Selectable;
+      JSONSelectable: ${ns}.JSONSelectable;
+      Whereable: ${ns}.Whereable;
+      Insertable: ${ns}.Insertable;
+      Updatable: ${ns}.Updatable;
+      UniqueIndex: ${ns}.UniqueIndex;
+      Column: ${ns}.Column;
+    };`;
+  }).join('\n');
+
+  return `
+export interface Schema extends db.BaseSchema {
+  tables: {
+${tableEntries}
+  };
+}
+`;
+};
 
 const
   schemaMappedUnion = (arr: string[], suffix: string) =>

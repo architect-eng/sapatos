@@ -91,7 +91,7 @@ function SQLForExtras<T extends Table>(extras: ExtrasOption<T>) {
 
 /* === insert === */
 
-interface InsertSignatures {
+export interface InsertSignatures {
   <T extends Table, C extends ColumnsOption<T>, E extends ExtrasOption<T>>(
     table: T,
     values: InsertableForTable<T>,
@@ -184,7 +184,7 @@ interface UpsertOptions<
   reportAction?: RA;
 }
 
-interface UpsertSignatures {
+export interface UpsertSignatures {
   <T extends Table,
     C extends ColumnsOption<T>,
     E extends ExtrasOption<T>,
@@ -293,7 +293,7 @@ export const upsert: UpsertSignatures = function (
 
 /* === update === */
 
-interface UpdateSignatures {
+export interface UpdateSignatures {
   <T extends Table, C extends ColumnsOption<T>, E extends ExtrasOption<T>>(
     table: T,
     values: UpdatableForTable<T>,
@@ -368,7 +368,7 @@ export const deletes: DeleteSignatures = function (
 type TruncateIdentityOpts = 'CONTINUE IDENTITY' | 'RESTART IDENTITY';
 type TruncateForeignKeyOpts = 'RESTRICT' | 'CASCADE';
 
-interface TruncateSignatures {
+export interface TruncateSignatures {
   (table: Table | Table[], ...opts: (TruncateIdentityOpts | TruncateForeignKeyOpts)[]): SQLFragment<undefined>;
 }
 
