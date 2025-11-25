@@ -37,6 +37,7 @@ export type JSONArray = JSONValue[];
 /**
  * Generic structure interface that all table type definitions must conform to.
  * Used for module augmentation to enable multi-database support.
+ * Uses `any` types to allow flexibility in type assignments.
  */
 export interface GenericSQLStructure {
   Table: string;
@@ -62,15 +63,31 @@ export interface GenericSQLStructure {
  *   }
  * }
  * ```
+ *
+ * The index signature provides fallback types when no schema is generated,
+ * allowing the runtime code to compile. Specific table entries override this.
  */
-// eslint-disable-next-line @typescript-eslint/no-empty-object-type
-export interface StructureMap { }
+export interface StructureMap {
+  /* eslint-disable @typescript-eslint/no-explicit-any */
+  [tableName: string]: {
+    Table: string;
+    Selectable: Record<string, any>;
+    JSONSelectable: Record<string, any>;
+    Whereable: Record<string, any>;
+    Insertable: Record<string, any>;
+    Updatable: Record<string, any>;
+    UniqueIndex: string;
+    Column: string;
+    SQL: any;
+  };
+  /* eslint-enable @typescript-eslint/no-explicit-any */
+}
 
 // === StructureMap-derived types ===
 
 /**
  * Union of all registered table names.
- * Derived from the keys of StructureMap (filtered to strings only).
+ * With the index signature, this is `string`.
  */
 export type Table = keyof StructureMap & string;
 
