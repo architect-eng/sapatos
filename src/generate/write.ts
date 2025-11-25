@@ -28,8 +28,8 @@ export const generate = async (suppliedConfig: Config) => {
     customFolderName = 'custom',
     customTypesIndexName = 'index' + config.outExt,
     customTypesIndexContent = header() + `
-// this empty declaration appears to fix relative imports in other custom type files
-declare module '@architect-eng/sapatos/custom' { }
+// Re-export all custom types from this index
+export {};
 `,
 
     folderTargetPath = path.join(config.outDir, folderName),
