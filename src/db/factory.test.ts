@@ -1,11 +1,18 @@
 import { describe, it, expect } from 'vitest';
-import { SQLFragment } from './core';
+import { Parameter, SQLFragment } from './core';
 import {
   createSapatosDb,
   type BaseSchema,
   type SapatosDb,
 } from './factory';
 import { IsolationLevel } from './transaction';
+
+/**
+ * Types for Whereable fields that match what the code generator produces.
+ * Real generated schemas include SQLFragment, Parameter, etc. as valid values.
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type WhereableValue<T> = T | Parameter<T> | SQLFragment<any, any> | undefined;
 
 /**
  * Test schema definition matching what would be generated
@@ -17,7 +24,11 @@ interface TestSchema extends BaseSchema {
       Table: 'users';
       Selectable: { id: number; name: string; email: string | null };
       JSONSelectable: { id: number; name: string; email: string | null };
-      Whereable: { id?: number; name?: string; email?: string | null };
+      Whereable: {
+        id?: WhereableValue<number>;
+        name?: WhereableValue<string>;
+        email?: WhereableValue<string | null>;
+      };
       Insertable: { id?: number; name: string; email?: string | null };
       Updatable: { id?: number; name?: string; email?: string | null };
       UniqueIndex: 'users_pkey' | 'users_email_key';
@@ -27,7 +38,12 @@ interface TestSchema extends BaseSchema {
       Table: 'posts';
       Selectable: { id: number; user_id: number; title: string; content: string };
       JSONSelectable: { id: number; user_id: number; title: string; content: string };
-      Whereable: { id?: number; user_id?: number; title?: string; content?: string };
+      Whereable: {
+        id?: WhereableValue<number>;
+        user_id?: WhereableValue<number>;
+        title?: WhereableValue<string>;
+        content?: WhereableValue<string>;
+      };
       Insertable: { id?: number; user_id: number; title: string; content: string };
       Updatable: { id?: number; user_id?: number; title?: string; content?: string };
       UniqueIndex: 'posts_pkey';

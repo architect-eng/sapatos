@@ -7,6 +7,7 @@
  * in NX monorepos.
  */
 
+import type * as pg from 'pg';
 import * as conditions from './conditions';
 import {
   sql,
@@ -38,7 +39,26 @@ import {
   strict,
   toBuffer,
 } from './core';
-import type { BaseSchema } from './schema-types';
+import type {
+  BaseSchema,
+  TableNames,
+  InsertableFor,
+  UpdatableFor,
+  WhereableFor,
+  ColumnFor,
+  UniqueIndexFor,
+  ColumnsOptionFor,
+  ExtrasOptionFor,
+  ReturningOptionsFor,
+  ReturningTypeFor,
+  LateralOptionFor,
+  SelectOptionsFor,
+  SelectReturnTypeFor,
+  UpsertOptionsFor,
+  UpsertReturnTypeFor,
+  TruncateOpts,
+  SQLFor,
+} from './schema-types';
 import {
   insert,
   upsert,
@@ -78,6 +98,182 @@ import {
   type TxnClientForReadCommittedRO,
   type TxnClientForSerializableRODeferrable,
 } from './transaction';
+import { NoInfer } from './utils';
+
+// ============================================================================
+// Schema-typed function interfaces
+// These interfaces define the type signatures for shortcuts that are
+// parameterized by the schema type S, constraining table names and types.
+// ============================================================================
+
+/**
+ * Schema-typed insert function
+ */
+interface InsertFn<S extends BaseSchema> {
+  <T extends TableNames<S>,
+   C extends ColumnsOptionFor<S, T> = undefined,
+   E extends ExtrasOptionFor<S, T> = undefined>(
+    table: T,
+    values: InsertableFor<S, T>,
+    options?: ReturningOptionsFor<S, T, C, E>
+  ): SQLFragment<ReturningTypeFor<S, T, C, E>>;
+
+  <T extends TableNames<S>,
+   C extends ColumnsOptionFor<S, T> = undefined,
+   E extends ExtrasOptionFor<S, T> = undefined>(
+    table: T,
+    values: InsertableFor<S, T>[],
+    options?: ReturningOptionsFor<S, T, C, E>
+  ): SQLFragment<ReturningTypeFor<S, T, C, E>[]>;
+}
+
+/**
+ * Schema-typed select function
+ */
+interface SelectFn<S extends BaseSchema> {
+  <T extends TableNames<S>,
+   C extends ColumnsOptionFor<S, T> = undefined,
+   L extends LateralOptionFor<S, T, C, E> = undefined,
+   E extends ExtrasOptionFor<S, T> = undefined,
+   A extends string = never>(
+    table: T,
+    where: WhereableFor<S, T> | SQLFragment<unknown> | AllType,
+    options?: SelectOptionsFor<S, T, C, L, E, A>
+  ): SQLFragment<SelectReturnTypeFor<S, T, C, L, E>[]>;
+}
+
+/**
+ * Schema-typed selectOne function
+ */
+interface SelectOneFn<S extends BaseSchema> {
+  <T extends TableNames<S>,
+   C extends ColumnsOptionFor<S, T> = undefined,
+   L extends LateralOptionFor<S, T, C, E> = undefined,
+   E extends ExtrasOptionFor<S, T> = undefined,
+   A extends string = never>(
+    table: T,
+    where: WhereableFor<S, T> | SQLFragment<unknown> | AllType,
+    options?: SelectOptionsFor<S, T, C, L, E, A>
+  ): SQLFragment<SelectReturnTypeFor<S, T, C, L, E> | undefined>;
+}
+
+/**
+ * Schema-typed selectExactlyOne function
+ */
+interface SelectExactlyOneFn<S extends BaseSchema> {
+  <T extends TableNames<S>,
+   C extends ColumnsOptionFor<S, T> = undefined,
+   L extends LateralOptionFor<S, T, C, E> = undefined,
+   E extends ExtrasOptionFor<S, T> = undefined,
+   A extends string = never>(
+    table: T,
+    where: WhereableFor<S, T> | SQLFragment<unknown> | AllType,
+    options?: SelectOptionsFor<S, T, C, L, E, A>
+  ): SQLFragment<SelectReturnTypeFor<S, T, C, L, E>>;
+}
+
+/**
+ * Schema-typed update function
+ */
+interface UpdateFn<S extends BaseSchema> {
+  <T extends TableNames<S>,
+   C extends ColumnsOptionFor<S, T> = undefined,
+   E extends ExtrasOptionFor<S, T> = undefined>(
+    table: T,
+    values: UpdatableFor<S, T>,
+    where: WhereableFor<S, T> | SQLFragment<unknown>,
+    options?: ReturningOptionsFor<S, T, C, E>
+  ): SQLFragment<ReturningTypeFor<S, T, C, E>[]>;
+}
+
+/**
+ * Schema-typed deletes function
+ */
+interface DeletesFn<S extends BaseSchema> {
+  <T extends TableNames<S>,
+   C extends ColumnsOptionFor<S, T> = undefined,
+   E extends ExtrasOptionFor<S, T> = undefined>(
+    table: T,
+    where: WhereableFor<S, T> | SQLFragment<unknown>,
+    options?: ReturningOptionsFor<S, T, C, E>
+  ): SQLFragment<ReturningTypeFor<S, T, C, E>[]>;
+}
+
+/**
+ * Schema-typed Constraint class wrapper interface
+ */
+interface ConstraintClassFor<S extends BaseSchema> {
+  new <T extends TableNames<S>>(value: UniqueIndexFor<S, T>): { value: UniqueIndexFor<S, T> };
+}
+
+/**
+ * Schema-typed constraint function
+ */
+interface ConstraintFnFor<S extends BaseSchema> {
+  <T extends TableNames<S>>(value: UniqueIndexFor<S, T>): { value: UniqueIndexFor<S, T> };
+}
+
+/**
+ * Schema-typed upsert function
+ */
+interface UpsertFn<S extends BaseSchema> {
+  <T extends TableNames<S>,
+   C extends ColumnsOptionFor<S, T> = undefined,
+   E extends ExtrasOptionFor<S, T> = undefined,
+   UC extends ColumnFor<S, T> | ColumnFor<S, T>[] | undefined = undefined,
+   RA extends 'suppress' | undefined = undefined>(
+    table: T,
+    values: InsertableFor<S, T>,
+    conflictTarget: { value: UniqueIndexFor<S, T> } | ColumnFor<S, T> | ColumnFor<S, T>[],
+    options?: UpsertOptionsFor<S, T, C, E, UC, RA>
+  ): SQLFragment<UpsertReturnTypeFor<S, T, C, E, RA> | (UC extends never[] ? undefined : never)>;
+
+  <T extends TableNames<S>,
+   C extends ColumnsOptionFor<S, T> = undefined,
+   E extends ExtrasOptionFor<S, T> = undefined,
+   UC extends ColumnFor<S, T> | ColumnFor<S, T>[] | undefined = undefined,
+   RA extends 'suppress' | undefined = undefined>(
+    table: T,
+    values: InsertableFor<S, T>[],
+    conflictTarget: { value: UniqueIndexFor<S, T> } | ColumnFor<S, T> | ColumnFor<S, T>[],
+    options?: UpsertOptionsFor<S, T, C, E, UC, RA>
+  ): SQLFragment<UpsertReturnTypeFor<S, T, C, E, RA>[] | (UC extends never[] ? undefined : never)>;
+}
+
+/**
+ * Schema-typed truncate function
+ */
+interface TruncateFn<S extends BaseSchema> {
+  (table: TableNames<S> | TableNames<S>[], ...opts: TruncateOpts[]): SQLFragment<undefined>;
+}
+
+/**
+ * Schema-typed aggregate function (count, sum, avg, min, max)
+ */
+interface AggregateFn<S extends BaseSchema> {
+  <T extends TableNames<S>,
+   C extends ColumnsOptionFor<S, T> = undefined,
+   L extends LateralOptionFor<S, T, C, E> = undefined,
+   E extends ExtrasOptionFor<S, T> = undefined,
+   A extends string = never>(
+    table: T,
+    where: WhereableFor<S, T> | SQLFragment<unknown> | AllType,
+    options?: SelectOptionsFor<S, T, C, L, E, A>
+  ): SQLFragment<number>;
+}
+
+/**
+ * Schema-typed sql function
+ * Constrains interpolations to valid schema types
+ */
+interface SqlFn<S extends BaseSchema> {
+  <Interpolations = SQLFor<S>,
+   RunResult = pg.QueryResult['rows'],
+   C = never>(
+    literals: TemplateStringsArray,
+    ...expressions: NoInfer<Interpolations>[]
+  ): SQLFragment<RunResult, C>;
+}
 
 /**
  * Create a typed database interface for the given schema.
@@ -112,20 +308,12 @@ import {
  * // Can now query tables from both schemas
  * ```
  */
-// eslint-disable-next-line @typescript-eslint/no-unnecessary-type-parameters
-export function createSapatosDb<_S extends BaseSchema>() {
-  // The shortcut functions already use generic constraints like `T extends Table`,
-  // which are resolved at the call site. Since we're returning the same functions,
-  // the type inference will work correctly when users call them with table names
-  // that exist in their Schema.
-  //
-  // The Schema type parameter here mainly serves as documentation and enables
-  // future enhancements where we might want to add runtime validation or
-  // schema-specific type narrowing.
-
+export function createSapatosDb<S extends BaseSchema>() {
   return {
-    // SQL building primitives
-    sql,
+    // Schema-typed sql function (constrains interpolations to valid schema types)
+    sql: sql as unknown as SqlFn<S>,
+
+    // Schema-agnostic SQL building primitives
     param,
     raw,
     cols,
@@ -137,30 +325,30 @@ export function createSapatosDb<_S extends BaseSchema>() {
     self,
     all,
 
-    // Query shortcut functions
-    insert,
-    upsert,
-    update,
-    deletes,
-    truncate,
-    select,
-    selectOne,
-    selectExactlyOne,
-    count,
-    sum,
-    avg,
-    min,
-    max,
+    // Schema-typed query shortcut functions
+    insert: insert as unknown as InsertFn<S>,
+    upsert: upsert as unknown as UpsertFn<S>,
+    update: update as unknown as UpdateFn<S>,
+    deletes: deletes as unknown as DeletesFn<S>,
+    truncate: truncate as unknown as TruncateFn<S>,
+    select: select as unknown as SelectFn<S>,
+    selectOne: selectOne as unknown as SelectOneFn<S>,
+    selectExactlyOne: selectExactlyOne as unknown as SelectExactlyOneFn<S>,
+    count: count as unknown as AggregateFn<S>,
+    sum: sum as unknown as AggregateFn<S>,
+    avg: avg as unknown as AggregateFn<S>,
+    min: min as unknown as AggregateFn<S>,
+    max: max as unknown as AggregateFn<S>,
 
-    // Constraint helper for upsert
-    Constraint,
-    constraint,
+    // Schema-typed constraint helpers for upsert
+    Constraint: Constraint as unknown as ConstraintClassFor<S>,
+    constraint: constraint as unknown as ConstraintFnFor<S>,
     doNothing,
 
-    // Conditions (spread for convenience)
+    // Conditions (spread for convenience) - schema-agnostic
     ...conditions,
 
-    // Transaction utilities
+    // Transaction utilities - schema-agnostic
     transaction,
     serializable,
     repeatableRead,
