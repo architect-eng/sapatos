@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.4.2](https://github.com/architect-eng/sapatos/compare/v0.4.1...v0.4.2) (2025-11-25)
+
+
+### Reverts
+
+* back to known good state ([fff04e2](https://github.com/architect-eng/sapatos/commit/fff04e2bca26b0242d38711abcf95512fe679084))
+
 ## [0.4.1](https://github.com/architect-eng/sapatos/compare/v0.4.0...v0.4.1) (2025-11-25)
 
 
