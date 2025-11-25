@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { sourceFilesForCustomTypes, indentAll } from './tsOutput';
+import { sourceFilesForCustomTypes, generateBarrelContent, indentAll } from './tsOutput';
 
 describe('tsOutput.ts', () => {
   describe('sourceFilesForCustomTypes', () => {
@@ -47,6 +47,33 @@ describe('tsOutput.ts', () => {
       expect(result.PgType1).toBeDefined();
       expect(result.PgType2).toBeDefined();
       expect(result.PgType3).toBeDefined();
+    });
+  });
+
+  describe('generateBarrelContent', () => {
+    it('should return empty string for no custom types', () => {
+      const result = generateBarrelContent([]);
+      expect(result).toBe('');
+    });
+
+    it('should generate export for single custom type', () => {
+      const result = generateBarrelContent(['PgMyType']);
+      expect(result).toBe("export * from './PgMyType';\n");
+    });
+
+    it('should generate exports for multiple custom types', () => {
+      const result = generateBarrelContent(['PgType1', 'PgType2', 'PgType3']);
+      expect(result).toBe(
+        "export * from './PgType1';\n" +
+        "export * from './PgType2';\n" +
+        "export * from './PgType3';\n"
+      );
+    });
+
+    it('should handle custom type names with underscores', () => {
+      const result = generateBarrelContent(['PgEmail_address', 'PgCompany_id']);
+      expect(result).toContain("export * from './PgEmail_address';");
+      expect(result).toContain("export * from './PgCompany_id';");
     });
   });
 

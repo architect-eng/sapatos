@@ -11,6 +11,7 @@ export const enumDataForSchema = mod.enumDataForSchema;
 export const enumTypesForEnumData = mod.enumTypesForEnumData;
 export const finaliseConfig = mod.finaliseConfig;
 export const generate = mod.generate;
+export const generateBarrelContent = mod.generateBarrelContent;
 export const generateSchemaInterface = mod.generateSchemaInterface;
 export const header = mod.header;
 export const indentAll = mod.indentAll;

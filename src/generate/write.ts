@@ -4,7 +4,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { Config, finaliseConfig } from './config';
 import { header } from './header';
-import { tsForConfig } from './tsOutput';
+import { generateBarrelContent, tsForConfig } from './tsOutput';
 
 
 /**
@@ -29,8 +29,7 @@ export const generate = async (suppliedConfig: Config) => {
     customTypesIndexName = 'index' + config.outExt,
     customTypesIndexContent = header() + `
 // Re-export all custom types from this index
-export {};
-`,
+` + generateBarrelContent(Object.keys(customTypeSourceFiles)),
 
     folderTargetPath = path.join(config.outDir, folderName),
     schemaTargetPath = path.join(folderTargetPath, schemaName),

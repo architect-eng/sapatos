@@ -42,6 +42,11 @@ export const sourceFilesForCustomTypes = (customTypes: CustomTypes) =>
         `export type ${name} = ${baseType};  // replace with your custom type or interface as desired\n`
     ]));
 
+export const generateBarrelContent = (customTypeNames: string[]) =>
+  customTypeNames
+    .map(name => `export * from './${name}';`)
+    .join('\n') + (customTypeNames.length > 0 ? '\n' : '');
+
 export function indentAll(level: number, s: string) {
   if (level === 0) return s;
   return s.replace(/^/gm, ' '.repeat(level));
