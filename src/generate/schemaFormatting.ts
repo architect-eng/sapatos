@@ -132,7 +132,7 @@ export namespace ${rel.name} {
   export type UniqueIndex = StructureMap['${tableName}']['UniqueIndex'];
   export type Column = StructureMap['${tableName}']['Column'];
   export type OnlyCols<T extends readonly Column[]> = Pick<Selectable, T[number]>;
-  export type SQLExpression = Table | db.ColumnNames<Updatable | (keyof Updatable)[]> | db.ColumnValues<Updatable> | Whereable | Column | db.ParentColumn | db.GenericSQLExpression;
+  export type SQLExpression = Table | ColumnNames<Updatable | (keyof Updatable)[]> | ColumnValues<Updatable> | Whereable | Column | ParentColumn | GenericSQLExpression;
   export type SQL = SQLExpression | SQLExpression[];
 }`;
 };
@@ -157,7 +157,7 @@ ${indent}  export type Updatable = StructureMap['${tableName}']['Updatable'];
 ${indent}  export type UniqueIndex = StructureMap['${tableName}']['UniqueIndex'];
 ${indent}  export type Column = StructureMap['${tableName}']['Column'];
 ${indent}  export type OnlyCols<T extends readonly Column[]> = Pick<Selectable, T[number]>;
-${indent}  export type SQLExpression = Table | db.ColumnNames<Updatable | (keyof Updatable)[]> | db.ColumnValues<Updatable> | Whereable | Column | db.ParentColumn | db.GenericSQLExpression;
+${indent}  export type SQLExpression = Table | ColumnNames<Updatable | (keyof Updatable)[]> | ColumnValues<Updatable> | Whereable | Column | ParentColumn | GenericSQLExpression;
 ${indent}  export type SQL = SQLExpression | SQLExpression[];
 ${indent}}`;
 };
@@ -220,7 +220,7 @@ export const formatSQLExpressionType = (data: RelationData): string => {
   const tableName = `${schemaPrefix}${rel.name}`;
   const sanitizedTypeName = sanitizeTypeIdentifier(tableName);
 
-  return `type ${sanitizedTypeName}SQLExpression = '${tableName}' | db.ColumnNames<StructureMap['${tableName}']['Updatable'] | (keyof StructureMap['${tableName}']['Updatable'])[]> | db.ColumnValues<StructureMap['${tableName}']['Updatable']> | StructureMap['${tableName}']['Whereable'] | StructureMap['${tableName}']['Column'] | db.ParentColumn | db.GenericSQLExpression;`;
+  return `type ${sanitizedTypeName}SQLExpression = '${tableName}' | ColumnNames<StructureMap['${tableName}']['Updatable'] | (keyof StructureMap['${tableName}']['Updatable'])[]> | ColumnValues<StructureMap['${tableName}']['Updatable']> | StructureMap['${tableName}']['Whereable'] | StructureMap['${tableName}']['Column'] | ParentColumn | GenericSQLExpression;`;
 };
 
 // ============================================================================

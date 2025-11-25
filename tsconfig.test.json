@@ -2,7 +2,8 @@
   "extends": "./tsconfig.json",
   "include": [
     "src/**/*.test.ts",
-    "src/**/*.integration.test.ts"
+    "src/**/*.integration.test.ts",
+    "src/typings/**/*.ts"
   ],
   "exclude": [
     "node_modules"

@@ -1,11 +1,4 @@
 
-
-import type {
-  Column,
-  Table,
-  Updatable,
-  Whereable,
-} from '@architect-eng/sapatos/schema';
 import type * as pg from 'pg';
 import { getConfig, SQLQuery } from './config';
 import { isPOJO, NoInfer } from './utils';
@@ -40,6 +33,123 @@ export type AllType = typeof all;
 export type JSONValue = null | boolean | number | string | JSONObject | JSONArray;
 export type JSONObject = { [k: string]: JSONValue };
 export type JSONArray = JSONValue[];
+
+/**
+ * Generic structure interface that all table type definitions must conform to.
+ * Used for module augmentation to enable multi-database support.
+ */
+export interface GenericSQLStructure {
+  Table: string;
+  Selectable: Record<string, unknown>;
+  JSONSelectable: Record<string, unknown>;
+  Whereable: Record<string, unknown>;
+  Insertable: Record<string, unknown>;
+  Updatable: Record<string, unknown>;
+  UniqueIndex: string;
+  Column: string;
+  SQL: unknown;
+}
+
+/**
+ * StructureMap is the central registry of all table type definitions.
+ * Generated schema files augment this interface to add their table types.
+ *
+ * Usage in generated code:
+ * ```typescript
+ * declare module '@architect-eng/sapatos/db' {
+ *   interface StructureMap {
+ *     'users': { Table: 'users'; Selectable: {...}; ... };
+ *   }
+ * }
+ * ```
+ */
+// eslint-disable-next-line @typescript-eslint/no-empty-object-type
+export interface StructureMap { }
+
+// === StructureMap-derived types ===
+
+/**
+ * Union of all registered table names.
+ * Derived from the keys of StructureMap (filtered to strings only).
+ */
+export type Table = keyof StructureMap & string;
+
+/**
+ * Union of all Selectable types across all tables.
+ */
+export type Selectable = StructureMap[Table]['Selectable'];
+
+/**
+ * Union of all JSONSelectable types across all tables.
+ */
+export type JSONSelectable = StructureMap[Table]['JSONSelectable'];
+
+/**
+ * Union of all Whereable types across all tables.
+ */
+export type Whereable = StructureMap[Table]['Whereable'];
+
+/**
+ * Union of all Insertable types across all tables.
+ */
+export type Insertable = StructureMap[Table]['Insertable'];
+
+/**
+ * Union of all Updatable types across all tables.
+ */
+export type Updatable = StructureMap[Table]['Updatable'];
+
+/**
+ * Union of all UniqueIndex types across all tables.
+ */
+export type UniqueIndex = StructureMap[Table]['UniqueIndex'];
+
+/**
+ * Union of all Column types across all tables.
+ */
+export type Column = StructureMap[Table]['Column'];
+
+// === Lookup types (per-table type extraction) ===
+
+/**
+ * Extract the Selectable type for a specific table.
+ */
+export type SelectableForTable<T extends Table> = StructureMap[T]['Selectable'];
+
+/**
+ * Extract the JSONSelectable type for a specific table.
+ */
+export type JSONSelectableForTable<T extends Table> = StructureMap[T]['JSONSelectable'];
+
+/**
+ * Extract the Whereable type for a specific table.
+ */
+export type WhereableForTable<T extends Table> = StructureMap[T]['Whereable'];
+
+/**
+ * Extract the Insertable type for a specific table.
+ */
+export type InsertableForTable<T extends Table> = StructureMap[T]['Insertable'];
+
+/**
+ * Extract the Updatable type for a specific table.
+ */
+export type UpdatableForTable<T extends Table> = StructureMap[T]['Updatable'];
+
+/**
+ * Extract the UniqueIndex type for a specific table.
+ */
+export type UniqueIndexForTable<T extends Table> = StructureMap[T]['UniqueIndex'];
+
+/**
+ * Extract the Column type for a specific table.
+ */
+export type ColumnForTable<T extends Table> = StructureMap[T]['Column'];
+
+/**
+ * Extract the SQL type for a specific table.
+ */
+export type SQLForTable<T extends Table> = StructureMap[T]['SQL'];
 
 /**
  * `int8` or `numeric` value represented as a string

@@ -1,6 +1,6 @@
 
-
-// this file exists only to suppress type errors when compiling the files in src/db
+// This file is now deprecated - types have moved to @architect-eng/sapatos/db
+// Keeping this file for backward compatibility during transition
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 export interface Updatable { [k: string]: any }

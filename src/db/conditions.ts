@@ -1,6 +1,5 @@
 
-
-import type { Whereable } from '@architect-eng/sapatos/schema';
+import type { Whereable } from './core';
 import {
   SQLFragment,
   ParentColumn,

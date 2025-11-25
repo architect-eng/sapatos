@@ -204,7 +204,8 @@ describe('schemaFormatting Module', () => {
       const data = createTestRelationData();
       const result = formatNamespaceAlias(data);
       expect(result).toContain('export type SQLExpression = ');
-      expect(result).toContain('Table | db.ColumnNames');
+      // Since we're inside the db module, no db. prefix needed
+      expect(result).toContain('Table | ColumnNames');
     });
 
     it('exports SQL type as array of SQLExpression', () => {
@@ -355,13 +356,15 @@ describe('schemaFormatting Module', () => {
     it('includes ColumnNames utility type', () => {
       const data = createTestRelationData();
       const result = formatSQLExpressionType(data);
-      expect(result).toContain("db.ColumnNames<StructureMap['users']['Updatable']");
+      // Since we're inside the db module, no db. prefix needed
+      expect(result).toContain("ColumnNames<StructureMap['users']['Updatable']");
     });
 
     it('includes ColumnValues utility type', () => {
       const data = createTestRelationData();
       const result = formatSQLExpressionType(data);
-      expect(result).toContain("db.ColumnValues<StructureMap['users']['Updatable']>");
+      // Since we're inside the db module, no db. prefix needed
+      expect(result).toContain("ColumnValues<StructureMap['users']['Updatable']>");
     });
 
     it('includes Whereable reference', () => {
@@ -379,13 +382,17 @@ describe('schemaFormatting Module', () => {
     it('includes ParentColumn utility', () => {
       const data = createTestRelationData();
       const result = formatSQLExpressionType(data);
-      expect(result).toContain('db.ParentColumn');
+      // Since we're inside the db module, no db. prefix needed
+      expect(result).toContain('ParentColumn');
+      expect(result).not.toContain('db.ParentColumn');
     });
 
     it('includes GenericSQLExpression utility', () => {
       const data = createTestRelationData();
       const result = formatSQLExpressionType(data);
-      expect(result).toContain('db.GenericSQLExpression');
+      // Since we're inside the db module, no db. prefix needed
+      expect(result).toContain('GenericSQLExpression');
+      expect(result).not.toContain('db.GenericSQLExpression');
     });
 
     it('sanitizes schema prefix in type name when provided', () => {

@@ -97,52 +97,19 @@ export const tsForConfig = async (
     .filter(s => s.trim().length > 0)
     .join('\n\n');
 
-  // Generate lookup types
-  const lookupTypes = `
-export type SelectableForTable<T extends Table> = StructureMap[T]['Selectable'];
+  // Note: Lookup types and union types are now in the runtime module (src/db/core.ts)
+  // They are derived from StructureMap which is augmented by generated code
 
-export type JSONSelectableForTable<T extends Table> = StructureMap[T]['JSONSelectable'];
-
-export type WhereableForTable<T extends Table> = StructureMap[T]['Whereable'];
-
-export type InsertableForTable<T extends Table> = StructureMap[T]['Insertable'];
-
-export type UpdatableForTable<T extends Table> = StructureMap[T]['Updatable'];
-
-export type UniqueIndexForTable<T extends Table> = StructureMap[T]['UniqueIndex'];
-
-export type ColumnForTable<T extends Table> = StructureMap[T]['Column'];
-
-export type SQLForTable<T extends Table> = StructureMap[T]['SQL'];
-`;
-
-  // Generate union types
-  const unionTypes = `
-export type Table = keyof StructureMap;
-export type Selectable = StructureMap[Table]['Selectable'];
-export type JSONSelectable = StructureMap[Table]['JSONSelectable'];
-export type Whereable = StructureMap[Table]['Whereable'];
-export type Insertable = StructureMap[Table]['Insertable'];
-export type Updatable = StructureMap[Table]['Updatable'];
-export type UniqueIndex = StructureMap[Table]['UniqueIndex'];
-export type Column = StructureMap[Table]['Column'];
-`;
-
-  const ts = header() + declareModule('@architect-eng/sapatos/schema',
-    `\nimport type * as db from '@architect-eng/sapatos/db';\n` +
+  const ts = header() + declareModule('@architect-eng/sapatos/db',
     (hasCustomTypes ? `import type * as c from '@architect-eng/sapatos/custom';\n` : ``) +
     versionCanary + '\n\n' +
     (enumTypes ? `/* --- enums --- */\n${enumTypes}\n\n` : '') +
     `/* --- SQLExpression helper types --- */\n` +
     sqlExpressionTypes + '\n\n' +
-    `/* --- StructureMap --- */\n` +
+    `/* --- StructureMap augmentation --- */\n` +
     `interface StructureMap {\n` +
     structureMapEntries + '\n' +
     `}\n\n` +
-    `/* --- Union types --- */\n` +
-    unionTypes + '\n\n' +
-    `/* --- Lookup types --- */\n` +
-    lookupTypes + '\n\n' +
     `/* --- Backward compatible namespace aliases --- */\n` +
     namespaceAliases
   );

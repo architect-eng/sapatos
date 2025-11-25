@@ -127,8 +127,8 @@ describe('tsForConfig - Module Augmentation', () => {
 
     const { ts } = await tsForConfig(config, () => {});
 
-    // Verify it uses declare module with StructureMap
-    expect(ts).toContain("declare module '@architect-eng/sapatos/schema'");
+    // Verify it uses declare module with StructureMap augmentation
+    expect(ts).toContain("declare module '@architect-eng/sapatos/db'");
     expect(ts).toContain('interface StructureMap');
 
     // Verify users table is in StructureMap
@@ -197,7 +197,7 @@ describe('tsForConfig - Module Augmentation', () => {
     expect(ts).toMatch(/export namespace users\s*{[\s\S]*export type Insertable = StructureMap\['users'\]\['Insertable'\]/);
   });
 
-  it('generates lookup types using StructureMap indexed access', async () => {
+  it('does not generate lookup types (they are now in runtime module)', async () => {
     const config = createMockConfig();
 
     mockTableQuery([{ name: 'users', type: 'table', insertable: true }]);
@@ -218,17 +218,17 @@ describe('tsForConfig - Module Augmentation', () => {
 
     const { ts } = await tsForConfig(config, () => {});
 
-    // Verify lookup types use StructureMap
-    expect(ts).toContain("export type SelectableForTable<T extends Table> = StructureMap[T]['Selectable']");
-    expect(ts).toContain("export type InsertableForTable<T extends Table> = StructureMap[T]['Insertable']");
-    expect(ts).toContain("export type UpdatableForTable<T extends Table> = StructureMap[T]['Updatable']");
-    expect(ts).toContain("export type WhereableForTable<T extends Table> = StructureMap[T]['Whereable']");
-    expect(ts).toContain("export type JSONSelectableForTable<T extends Table> = StructureMap[T]['JSONSelectable']");
-    expect(ts).toContain("export type ColumnForTable<T extends Table> = StructureMap[T]['Column']");
-    expect(ts).toContain("export type UniqueIndexForTable<T extends Table> = StructureMap[T]['UniqueIndex']");
+    // Verify lookup types are NOT generated (they are in runtime module src/db/core.ts)
+    expect(ts).not.toContain('export type SelectableForTable');
+    expect(ts).not.toContain('export type InsertableForTable');
+    expect(ts).not.toContain('export type UpdatableForTable');
+    expect(ts).not.toContain('export type WhereableForTable');
+    expect(ts).not.toContain('export type JSONSelectableForTable');
+    expect(ts).not.toContain('export type ColumnForTable');
+    expect(ts).not.toContain('export type UniqueIndexForTable');
   });
 
-  it('generates union types from StructureMap', async () => {
+  it('does not generate union types (they are now in runtime module)', async () => {
     const config = createMockConfig();
 
     mockTableQuery([{ name: 'users', type: 'table', insertable: true }]);
@@ -249,13 +249,12 @@ describe('tsForConfig - Module Augmentation', () => {
 
     const { ts } = await tsForConfig(config, () => {});
 
-    // Verify union types use StructureMap
-    expect(ts).toContain('export type Table = keyof StructureMap');
-    expect(ts).toContain("export type Selectable = StructureMap[Table]['Selectable']");
-    expect(ts).toContain("export type Insertable = StructureMap[Table]['Insertable']");
-    expect(ts).toContain("export type Whereable = StructureMap[Table]['Whereable']");
-    expect(ts).toContain("export type Updatable = StructureMap[Table]['Updatable']");
-    expect(ts).toContain("export type Column = StructureMap[Table]['Column']");
+    // Verify union types are NOT generated (they are in runtime module src/db/core.ts)
+    expect(ts).not.toContain('export type Table = keyof StructureMap');
+    expect(ts).not.toContain("export type Selectable = StructureMap[Table]['Selectable']");
+    expect(ts).not.toContain("export type Insertable = StructureMap[Table]['Insertable']");
+    expect(ts).not.toContain("export type Whereable = StructureMap[Table]['Whereable']");
+    expect(ts).not.toContain("export type Updatable = StructureMap[Table]['Updatable']");
   });
 
   it('handles custom types in StructureMap entries', async () => {
@@ -289,8 +288,8 @@ describe('tsForConfig - Module Augmentation', () => {
 
     const { ts, customTypeSourceFiles } = await tsForConfig(config, () => {});
 
-    // Verify custom type import
-    expect(ts).toMatch(/declare module '@architect-eng\/sapatos\/schema'\s*{[\s\S]*import type \* as c from '@architect-eng\/sapatos\/custom'/);
+    // Verify custom type import (now in db module augmentation)
+    expect(ts).toMatch(/declare module '@architect-eng\/sapatos\/db'\s*{[\s\S]*import type \* as c from '@architect-eng\/sapatos\/custom'/);
 
     // Verify custom type is used in StructureMap
     expect(ts).toContain('c.PgMy_custom_type');
