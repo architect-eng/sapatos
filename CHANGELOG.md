@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.4.1](https://github.com/architect-eng/sapatos/compare/v0.4.0...v0.4.1) (2025-11-25)
+
+
+### Bug Fixes
+
+* **db:** ensure all exports are accessible from @architect-eng/sapatos/db ([f029d68](https://github.com/architect-eng/sapatos/commit/f029d681e9a2f045ab47ce812ee2d5c0c0fb8ca7))
+
 ## [0.4.0](https://github.com/architect-eng/sapatos/compare/v0.3.1...v0.4.0) (2025-11-25)
 
 
