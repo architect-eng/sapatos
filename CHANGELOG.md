@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.5.1](https://github.com/architect-eng/sapatos/compare/v0.5.0...v0.5.1) (2025-11-25)
+
+
+### Bug Fixes
+
+* **generate:** rename Schema type alias to SchemaName to avoid duplication ([a6090a3](https://github.com/architect-eng/sapatos/commit/a6090a30084e147470d38d851b4615d8439840eb))
+* **generate:** use relative import for custom types in generated schema ([e2baca2](https://github.com/architect-eng/sapatos/commit/e2baca2139fef1d6888a59a30b317a20fcbc0df2))
+
 ## [0.5.0](https://github.com/architect-eng/sapatos/compare/v0.4.2...v0.5.0) (2025-11-25)
 
 
