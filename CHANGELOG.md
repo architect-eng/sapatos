@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.5.0](https://github.com/architect-eng/sapatos/compare/v0.4.2...v0.5.0) (2025-11-25)
+
+
+### Features
+
+* **db:** add createSapatosDb factory and explicit type exports ([09ac59a](https://github.com/architect-eng/sapatos/commit/09ac59a49c5f3d20c8102787a08ffff6a1ba1ed2))
+
 ## [0.4.2](https://github.com/architect-eng/sapatos/compare/v0.4.1...v0.4.2) (2025-11-25)
 
 
