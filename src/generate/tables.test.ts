@@ -210,7 +210,7 @@ describe('tables.ts', () => {
     it('should generate cross-schema types', () => {
       const result = crossSchemaTypesForSchemas(['public', 'audit']);
 
-      expect(result).toContain("export type Schema = 'public' | 'audit'");
+      expect(result).toContain("export type SchemaName = 'public' | 'audit'");
       expect(result).toContain('export type Table =');
       expect(result).toContain('export type AllSchemas =');
     });

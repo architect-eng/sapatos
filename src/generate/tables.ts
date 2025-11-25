@@ -321,7 +321,7 @@ export const
     '[' + arr.map(s => `...${s}.${suffix}`).join(', ') + ']';
 
 export const crossSchemaTypesForSchemas = (schemas: string[]) => `
-export type Schema = ${schemas.map(s => `'${s}'`).join(' | ')};
+export type SchemaName = ${schemas.map(s => `'${s}'`).join(' | ')};
 export type Table = ${schemaMappedUnion(schemas, 'Table')};
 export type Selectable = ${schemaMappedUnion(schemas, 'Selectable')};
 export type JSONSelectable = ${schemaMappedUnion(schemas, 'JSONSelectable')};
