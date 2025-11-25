@@ -105,7 +105,7 @@ export const tsForConfig = async (config: CompleteConfig, debug: (s: string) => 
     // Generate explicit exports instead of ambient declarations
     ts = header() +
       `import type * as db from '@architect-eng/sapatos/db';\n` +
-      (hasCustomTypes ? `import type * as c from '@architect-eng/sapatos/custom';\n` : ``) +
+      (hasCustomTypes ? `import type * as c from './custom';\n` : ``) +
       versionCanary + '\n\n' +
       schemaDefs.join('\n\n') +
       `\n\n/* === Schema interface === */\n` +
