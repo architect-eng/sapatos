@@ -22,7 +22,7 @@ interface RelationRow {
   insertable: boolean;
 }
 
-interface ColumnRow {
+export interface ColumnRow {
   column: string;
   isNullable: boolean;
   isGenerated: boolean;
@@ -110,7 +110,7 @@ const columnsForRelation = async (rel: Relation, schemaName: string, queryFn: (q
   return rows;
 };
 
-function quoteIfIllegalIdentifier(identifier: string) {
+export function quoteIfIllegalIdentifier(identifier: string) {
   // note: we'll redundantly quote a bunch of non-ASCII characters like this
   return identifier.match(/^[a-zA-Z_$][0-9a-zA-Z_$]*$/) ? identifier : `"${identifier}"`;
 }
@@ -242,7 +242,7 @@ export namespace ${rel.name} {
   return tableDef;
 };
 
-const transformCustomType = (customType: string, config: CompleteConfig) => {
+export const transformCustomType = (customType: string, config: CompleteConfig) => {
   const
     ctt = config.customTypesTransform,
     underscoredType = customType.replace(/\W+/g, '_'),
@@ -254,7 +254,7 @@ const transformCustomType = (customType: string, config: CompleteConfig) => {
         ctt(customType);
 };
 
-const
+export const
   tableMappedUnion = (arr: Relation[], suffix: string) =>
     arr.length === 0 ? 'never' : arr.map(rel => `${rel.name}.${suffix}`).join(' | '),
   tableMappedArray = (arr: Relation[], suffix: string) =>
@@ -314,7 +314,7 @@ ${tableEntries}
 `;
 };
 
-const
+export const
   schemaMappedUnion = (arr: string[], suffix: string) =>
     arr.length === 0 ? 'any' : arr.map(s => `${s}.${suffix}`).join(' | '),
   schemaMappedArray = (arr: string[], suffix: string) =>
@@ -339,7 +339,7 @@ export type AllMaterializedViews = ${schemaMappedArray(schemas, 'AllMaterialized
 export type AllTablesAndViews = ${schemaMappedArray(schemas, 'AllTablesAndViews')};
 `;
 
-const createColumnDoc = (config: CompleteConfig, schemaName: string, rel: Relation, columnDetails: ColumnRow) => {
+export const createColumnDoc = (config: CompleteConfig, schemaName: string, rel: Relation, columnDetails: ColumnRow) => {
   if (!config.schemaJSDoc) return '';
 
   const

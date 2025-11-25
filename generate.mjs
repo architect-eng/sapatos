@@ -1,6 +1,8 @@
 import mod from "./generate.js";
 
 export default mod;
+export const baseTsTypeForBasePgType = mod.baseTsTypeForBasePgType;
+export const createColumnDoc = mod.createColumnDoc;
 export const crossSchemaTypesForAllTables = mod.crossSchemaTypesForAllTables;
 export const crossSchemaTypesForSchemas = mod.crossSchemaTypesForSchemas;
 export const crossTableTypesForTables = mod.crossTableTypesForTables;
@@ -10,7 +12,16 @@ export const enumTypesForEnumData = mod.enumTypesForEnumData;
 export const finaliseConfig = mod.finaliseConfig;
 export const generate = mod.generate;
 export const generateSchemaInterface = mod.generateSchemaInterface;
+export const header = mod.header;
+export const indentAll = mod.indentAll;
 export const moduleRoot = mod.moduleRoot;
+export const quoteIfIllegalIdentifier = mod.quoteIfIllegalIdentifier;
 export const relationsInSchema = mod.relationsInSchema;
+export const schemaMappedArray = mod.schemaMappedArray;
+export const schemaMappedUnion = mod.schemaMappedUnion;
+export const sourceFilesForCustomTypes = mod.sourceFilesForCustomTypes;
+export const tableMappedArray = mod.tableMappedArray;
+export const tableMappedUnion = mod.tableMappedUnion;
+export const transformCustomType = mod.transformCustomType;
 export const tsForConfig = mod.tsForConfig;
 export const tsTypeForPgType = mod.tsTypeForPgType;

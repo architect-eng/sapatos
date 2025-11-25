@@ -63,5 +63,9 @@ export const runCLI = async (): Promise<void> => {
   await generate({ ...fileConfig as object, ...argsConfig as object } as Config);
 };
 
-// Execute CLI when run directly
-void runCLI();
+// Execute CLI when run directly (not when imported as a module for testing)
+// Check if we're running in a test environment by looking for vitest globals
+const isTestEnvironment = process.env['VITEST'] !== undefined || process.env['NODE_ENV'] === 'test';
+if (!isTestEnvironment) {
+  void runCLI();
+}

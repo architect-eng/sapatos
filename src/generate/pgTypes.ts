@@ -3,12 +3,12 @@
 import type { CompleteConfig } from './config';
 import type { EnumData } from './enums';
 
-type TypeContext = 'JSONSelectable' | 'Selectable' | 'Insertable' | 'Updatable' | 'Whereable';
+export type TypeContext = 'JSONSelectable' | 'Selectable' | 'Insertable' | 'Updatable' | 'Whereable';
 
 
 let warnedAboutInt8AndNumeric = false;
 
-const baseTsTypeForBasePgType = (pgType: string, enums: EnumData, context: TypeContext, config: CompleteConfig) => {
+export const baseTsTypeForBasePgType = (pgType: string, enums: EnumData, context: TypeContext, config: CompleteConfig) => {
   const
     hasOwnProp = (obj: object, prop: PropertyKey): boolean => Object.prototype.hasOwnProperty.call(obj, prop),
     warn = config.warningListener === true ? console.log : (config.warningListener !== false ? config.warningListener : (() => void 0));
