@@ -109,8 +109,8 @@ describe('generate - Integration Tests', () => {
       expect(result).toContain('export namespace test_users');
       expect(result).toContain("export type Table = 'test_users'");
 
-      // Check Selectable interface
-      expect(result).toContain('export interface Selectable');
+      // Check Selectable type
+      expect(result).toContain('export type Selectable = {');
       expect(result).toContain('id: number');
       expect(result).toContain('name: string');
       expect(result).toContain('status: user_status | null');
@@ -122,7 +122,7 @@ describe('generate - Integration Tests', () => {
       expect(result).toContain('scores: number[] | null');
 
       // Check Insertable has proper optionality
-      expect(result).toContain('export interface Insertable');
+      expect(result).toContain('export type Insertable = {');
       expect(result).toMatch(/name:\s*string/); // required
       expect(result).toMatch(/status\?:/); // optional (has default)
       expect(result).toMatch(/age\?:/); // optional (nullable)
@@ -154,8 +154,8 @@ describe('generate - Integration Tests', () => {
       const result = await definitionForRelationInSchema(relation, 'public', enums, customTypes, config, queryFn);
 
       // Insertable and Updatable should be empty for mviews
-      expect(result).toContain('export interface Insertable {');
-      expect(result).toContain('[key: string]: never;');
+      expect(result).toContain('export type Insertable = Record<string, never>');
+      expect(result).toContain('export type Updatable = Record<string, never>');
     });
 
     it('should handle generated columns', async () => {
@@ -168,9 +168,9 @@ describe('generate - Integration Tests', () => {
       const result = await definitionForRelationInSchema(relation, 'public', enums, customTypes, config, queryFn);
 
       // full_name should be in Selectable but not in Insertable (generated)
-      expect(result).toMatch(/interface Selectable[^}]*full_name: string/s);
+      expect(result).toMatch(/type Selectable = \{[^}]*full_name: string/s);
       // Check full_name is NOT in Insertable
-      const insertableMatch = result.match(/interface Insertable \{([^}]*)\}/s);
+      const insertableMatch = result.match(/type Insertable = \{([^}]*)\}/s);
       expect(insertableMatch?.[1]).not.toContain('full_name');
     });
 

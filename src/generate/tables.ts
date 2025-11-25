@@ -213,24 +213,25 @@ export const definitionForRelationInSchema = async (
  * - ${friendlyRelType} in database
  */` : ``,
     // Note: Namespaces already have 'export' keyword - this is required for explicit module exports
+    // Use type aliases instead of interfaces so they satisfy Record<string, unknown> constraint in BaseSchema
     tableDef = `${tableComment}
 export namespace ${rel.name} {
   export type Table = '${schemaPrefix}${rel.name}';
-  export interface Selectable {
+  export type Selectable = {
     ${selectables.join('\n    ')}
-  }
-  export interface JSONSelectable {
+  };
+  export type JSONSelectable = {
     ${JSONSelectables.join('\n    ')}
-  }
-  export interface Whereable {
+  };
+  export type Whereable = {
     ${whereables.join('\n    ')}
-  }
-  export interface Insertable {
-    ${insertables.length > 0 ? insertables.join('\n    ') : `[key: string]: never;`}
-  }
-  export interface Updatable {
-    ${updatables.length > 0 ? updatables.join('\n    ') : `[key: string]: never;`}
-  }
+  };
+  export type Insertable = ${insertables.length > 0 ? `{
+    ${insertables.join('\n    ')}
+  }` : `Record<string, never>`};
+  export type Updatable = ${updatables.length > 0 ? `{
+    ${updatables.join('\n    ')}
+  }` : `Record<string, never>`};
   export type UniqueIndex = ${uniqueIndexes.length > 0 ?
         uniqueIndexes.map((ui: UniqueIndexRow) => `'${ui.indexname}'`).join(' | ') :
         'never'};
