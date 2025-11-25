@@ -21,7 +21,7 @@ permissions:
 
 jobs:
   release-please:
-    runs-on: ubuntu-latest
+    runs-on: blacksmith-2vcpu-ubuntu-2204
     outputs:
       release_created: ${{ steps.release.outputs.release_created }}
       tag_name: ${{ steps.release.outputs.tag_name }}
@@ -37,31 +37,26 @@ jobs:
     needs: release-please
     # Only run if a release was created and not in dry-run mode
     if: needs.release-please.outputs.release_created && (github.event.inputs.dry_run != 'true')
-    runs-on: ubuntu-latest
+    runs-on: blacksmith-2vcpu-ubuntu-2204
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      - uses: actions/setup-node@v6
         with:
           node-version: '22'
           registry-url: 'https://npm.pkg.github.com'
           scope: '@architect-eng'
+          cache: 'npm'
 
-      - name: Install dependencies
-        run: npm ci
+      - run: npm ci
         env:
           NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Run linter
-        run: npm run lint
+      - run: npm run lint
 
-      - name: Build package
-        run: npm run build
+      - run: npm run build
 
-      - name: Publish to GitHub Packages
-        run: npm publish
+      - run: npm publish
         env:
           NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
