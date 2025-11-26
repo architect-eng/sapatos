@@ -115,6 +115,66 @@ export function quoteIfIllegalIdentifier(identifier: string) {
   return identifier.match(/^[a-zA-Z_$][0-9a-zA-Z_$]*$/) ? identifier : `"${identifier}"`;
 }
 
+/**
+ * TypeScript reserved words that cannot be used as namespace names.
+ * Based on: https://www.typescriptlang.org/docs/handbook/2/everyday-types.html#type-aliases
+ * and JavaScript reserved words (since all ES modules use strict mode).
+ */
+const RESERVED_WORDS = new Set([
+  // JavaScript reserved words
+  'break', 'case', 'catch', 'continue', 'debugger', 'default', 'delete',
+  'do', 'else', 'export', 'extends', 'finally', 'for', 'function', 'if',
+  'import', 'in', 'instanceof', 'new', 'return', 'super', 'switch', 'this',
+  'throw', 'try', 'typeof', 'var', 'void', 'while', 'with', 'yield',
+  // Strict mode reserved words (includes 'public')
+  'implements', 'interface', 'let', 'package', 'private', 'protected',
+  'public', 'static',
+  // Future reserved words
+  'enum', 'await',
+  // TypeScript keywords that can't be namespace names
+  'type', 'namespace', 'module', 'declare', 'abstract', 'as', 'asserts',
+  'any', 'async', 'boolean', 'constructor', 'get', 'infer', 'is', 'keyof',
+  'never', 'readonly', 'require', 'number', 'object', 'set', 'string',
+  'symbol', 'undefined', 'unique', 'unknown', 'from', 'global', 'bigint',
+  'override',
+]);
+
+/**
+ * Sanitize an identifier for use as a TypeScript namespace name.
+ *
+ * Unlike object properties which can be quoted ("my prop": value),
+ * namespace names must be valid identifiers. This function transforms
+ * illegal identifiers into valid ones:
+ *
+ * - Spaces/special chars become underscores: "my schema" -> "my_schema"
+ * - Leading numbers get prefixed: "123table" -> "_123table"
+ * - Reserved words get prefixed: "public" -> "_public"
+ *
+ * @param identifier The raw identifier (schema or table name)
+ * @returns A valid TypeScript namespace identifier
+ */
+export function sanitizeNamespaceIdentifier(identifier: string): string {
+  // Replace any non-alphanumeric/underscore characters with underscores
+  let sanitized = identifier.replace(/[^a-zA-Z0-9_$]/g, '_');
+
+  // Ensure it doesn't start with a number
+  if (/^[0-9]/.test(sanitized)) {
+    sanitized = '_' + sanitized;
+  }
+
+  // Handle empty string edge case
+  if (sanitized === '') {
+    sanitized = '_empty_';
+  }
+
+  // Prefix reserved words
+  if (RESERVED_WORDS.has(sanitized.toLowerCase())) {
+    sanitized = '_' + sanitized;
+  }
+
+  return sanitized;
+}
+
 export const definitionForRelationInSchema = async (
   rel: Relation,
   schemaName: string,
@@ -200,6 +260,7 @@ export const definitionForRelationInSchema = async (
 
   const
     schemaPrefix = schemaName === config.unprefixedSchema ? '' : `${schemaName}.`,
+    sanitizedTableName = sanitizeNamespaceIdentifier(rel.name),
     friendlyRelTypes: Record<Relation['type'], string> = {
       table: 'Table',
       fdw: 'Foreign table',
@@ -214,8 +275,9 @@ export const definitionForRelationInSchema = async (
  */` : ``,
     // Note: Namespaces already have 'export' keyword - this is required for explicit module exports
     // Use type aliases instead of interfaces so they satisfy Record<string, unknown> constraint in BaseSchema
+    // The namespace name is sanitized for valid TypeScript, but the Table string literal keeps the original SQL name
     tableDef = `${tableComment}
-export namespace ${rel.name} {
+export namespace ${sanitizedTableName} {
   export type Table = '${schemaPrefix}${rel.name}';
   export type Selectable = {
     ${selectables.join('\n    ')}
@@ -257,9 +319,9 @@ export const transformCustomType = (customType: string, config: CompleteConfig) 
 
 export const
   tableMappedUnion = (arr: Relation[], suffix: string) =>
-    arr.length === 0 ? 'never' : arr.map(rel => `${rel.name}.${suffix}`).join(' | '),
+    arr.length === 0 ? 'never' : arr.map(rel => `${sanitizeNamespaceIdentifier(rel.name)}.${suffix}`).join(' | '),
   tableMappedArray = (arr: Relation[], suffix: string) =>
-    '[' + arr.map(rel => `${rel.name}.${suffix}`).join(', ') + ']';
+    '[' + arr.map(rel => `${sanitizeNamespaceIdentifier(rel.name)}.${suffix}`).join(', ') + ']';
 
 export const crossTableTypesForTables = (tables: Relation[]) => `${tables.length === 0 ?
   '\n// `never` rather than `any` types would be more accurate in this no-tables case, but they stop `shortcuts.ts` compiling\n' : ''
@@ -281,8 +343,15 @@ export type AllTablesAndViews = ${tableMappedArray(tables, 'Table')};`;
 
 export const crossSchemaTypesForAllTables = (allTables: Relation[], unprefixedSchema: string | null) =>
   ['Selectable', 'JSONSelectable', 'Whereable', 'Insertable', 'Updatable', 'UniqueIndex', 'Column', 'SQL'].map(thingable => `
-export type ${thingable}ForTable<T extends Table> = ${allTables.length === 0 ? 'any' : `{${allTables.map(rel => `
-  "${rel.schema === unprefixedSchema ? '' : `${rel.schema}.`}${rel.name}": ${rel.schema === unprefixedSchema ? '' : `${rel.schema}.`}${rel.name}.${thingable};`).join('')}
+export type ${thingable}ForTable<T extends Table> = ${allTables.length === 0 ? 'any' : `{${allTables.map(rel => {
+    const sanitizedSchema = sanitizeNamespaceIdentifier(rel.schema);
+    const sanitizedTable = sanitizeNamespaceIdentifier(rel.name);
+    // String key uses original names (for SQL), type reference uses sanitized names
+    const sqlKey = rel.schema === unprefixedSchema ? rel.name : `${rel.schema}.${rel.name}`;
+    const nsPath = rel.schema === unprefixedSchema ? sanitizedTable : `${sanitizedSchema}.${sanitizedTable}`;
+    return `
+  "${sqlKey}": ${nsPath}.${thingable};`;
+  }).join('')}
 }[T]`};
 `).join('');
 
@@ -292,8 +361,12 @@ export type ${thingable}ForTable<T extends Table> = ${allTables.length === 0 ? '
  */
 export const generateSchemaInterface = (tables: Relation[], unprefixedSchema: string | null): string => {
   const tableEntries = tables.map(t => {
+    // String key uses original names (for SQL table lookups)
     const fullName = t.schema === unprefixedSchema ? t.name : `${t.schema}.${t.name}`;
-    const ns = t.schema === unprefixedSchema ? t.name : `${t.schema}.${t.name}`;
+    // Namespace path uses sanitized names (for valid TypeScript)
+    const sanitizedSchema = sanitizeNamespaceIdentifier(t.schema);
+    const sanitizedTable = sanitizeNamespaceIdentifier(t.name);
+    const ns = t.schema === unprefixedSchema ? sanitizedTable : `${sanitizedSchema}.${sanitizedTable}`;
     return `    '${fullName}': {
       Table: ${ns}.Table;
       Selectable: ${ns}.Selectable;
@@ -317,9 +390,9 @@ ${tableEntries}
 
 export const
   schemaMappedUnion = (arr: string[], suffix: string) =>
-    arr.length === 0 ? 'any' : arr.map(s => `${s}.${suffix}`).join(' | '),
+    arr.length === 0 ? 'any' : arr.map(s => `${sanitizeNamespaceIdentifier(s)}.${suffix}`).join(' | '),
   schemaMappedArray = (arr: string[], suffix: string) =>
-    '[' + arr.map(s => `...${s}.${suffix}`).join(', ') + ']';
+    '[' + arr.map(s => `...${sanitizeNamespaceIdentifier(s)}.${suffix}`).join(', ') + ']';
 
 export const crossSchemaTypesForSchemas = (schemas: string[]) => `
 export type SchemaName = ${schemas.map(s => `'${s}'`).join(' | ')};

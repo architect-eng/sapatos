@@ -13,6 +13,7 @@ import {
   crossSchemaTypesForAllTables,
   crossSchemaTypesForSchemas,
   generateSchemaInterface,
+  sanitizeNamespaceIdentifier,
 } from './tables';
 
 
@@ -84,9 +85,10 @@ export const tsForConfig = async (config: CompleteConfig, debug: (s: string) => 
           tableDefs = await Promise.all(tables.map(async table =>
             definitionForRelationInSchema(table, schema, enums, customTypes, config, queryFn))),
           schemaIsUnprefixed = schema === config.unprefixedSchema,
+          sanitizedSchema = sanitizeNamespaceIdentifier(schema),
           none = '/* (none) */',
           schemaDef = `/* === schema: ${schema} === */\n` +
-            (schemaIsUnprefixed ? '' : `\nexport namespace ${schema} {\n`) +
+            (schemaIsUnprefixed ? '' : `\nexport namespace ${sanitizedSchema} {\n`) +
             indentAll(schemaIsUnprefixed ? 0 : 2,
               `\n/* --- enums --- */\n` +
               (enumTypesForEnumData(enums) || none) +
@@ -94,7 +96,7 @@ export const tsForConfig = async (config: CompleteConfig, debug: (s: string) => 
               (tableDefs.join('\n') || none) +
               `\n\n/* --- aggregate types --- */\n` +
               (schemaIsUnprefixed ?
-                `\nexport namespace ${schema} {` + (indentAll(2, crossTableTypesForTables(tables) || none)) + '\n}\n' :
+                `\nexport namespace ${sanitizedSchema} {` + (indentAll(2, crossTableTypesForTables(tables) || none)) + '\n}\n' :
                 (crossTableTypesForTables(tables) || none))
             ) + '\n' +
             (schemaIsUnprefixed ? '' : `}\n`);

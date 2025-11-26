@@ -18,6 +18,7 @@ export const indentAll = mod.indentAll;
 export const moduleRoot = mod.moduleRoot;
 export const quoteIfIllegalIdentifier = mod.quoteIfIllegalIdentifier;
 export const relationsInSchema = mod.relationsInSchema;
+export const sanitizeNamespaceIdentifier = mod.sanitizeNamespaceIdentifier;
 export const schemaMappedArray = mod.schemaMappedArray;
 export const schemaMappedUnion = mod.schemaMappedUnion;
 export const sourceFilesForCustomTypes = mod.sourceFilesForCustomTypes;

@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { finaliseConfig } from './config';
 import {
   quoteIfIllegalIdentifier,
+  sanitizeNamespaceIdentifier,
   transformCustomType,
   tableMappedUnion,
   tableMappedArray,
@@ -46,6 +47,53 @@ describe('tables.ts', () => {
 
     it('should handle empty string', () => {
       expect(quoteIfIllegalIdentifier('')).toBe('""');
+    });
+  });
+
+  describe('sanitizeNamespaceIdentifier', () => {
+    it('should return valid identifiers unchanged', () => {
+      expect(sanitizeNamespaceIdentifier('users')).toBe('users');
+      expect(sanitizeNamespaceIdentifier('my_table')).toBe('my_table');
+      expect(sanitizeNamespaceIdentifier('Table123')).toBe('Table123');
+      expect(sanitizeNamespaceIdentifier('_private')).toBe('_private');
+      expect(sanitizeNamespaceIdentifier('$special')).toBe('$special');
+    });
+
+    it('should replace spaces with underscores', () => {
+      expect(sanitizeNamespaceIdentifier('my schema')).toBe('my_schema');
+      expect(sanitizeNamespaceIdentifier('test with spaces')).toBe('test_with_spaces');
+    });
+
+    it('should replace special characters with underscores', () => {
+      expect(sanitizeNamespaceIdentifier('has-dash')).toBe('has_dash');
+      expect(sanitizeNamespaceIdentifier('has.dot')).toBe('has_dot');
+      expect(sanitizeNamespaceIdentifier('has@symbol')).toBe('has_symbol');
+      expect(sanitizeNamespaceIdentifier('multi-char.test@name')).toBe('multi_char_test_name');
+    });
+
+    it('should prefix identifiers starting with numbers', () => {
+      expect(sanitizeNamespaceIdentifier('123table')).toBe('_123table');
+      expect(sanitizeNamespaceIdentifier('0users')).toBe('_0users');
+    });
+
+    it('should prefix reserved words', () => {
+      expect(sanitizeNamespaceIdentifier('public')).toBe('_public');
+      expect(sanitizeNamespaceIdentifier('private')).toBe('_private');
+      expect(sanitizeNamespaceIdentifier('interface')).toBe('_interface');
+      expect(sanitizeNamespaceIdentifier('class')).toBe('class'); // not in our list, but valid
+      expect(sanitizeNamespaceIdentifier('type')).toBe('_type');
+      expect(sanitizeNamespaceIdentifier('namespace')).toBe('_namespace');
+    });
+
+    it('should handle edge cases', () => {
+      expect(sanitizeNamespaceIdentifier('')).toBe('_empty_');
+      expect(sanitizeNamespaceIdentifier('---')).toBe('___');
+      expect(sanitizeNamespaceIdentifier('123')).toBe('_123');
+    });
+
+    it('should be case-insensitive for reserved words', () => {
+      expect(sanitizeNamespaceIdentifier('PUBLIC')).toBe('_PUBLIC');
+      expect(sanitizeNamespaceIdentifier('Public')).toBe('_Public');
     });
   });
 
@@ -193,26 +241,34 @@ describe('tables.ts', () => {
       expect(schemaMappedUnion([], 'Table')).toBe('any');
     });
 
-    it('should create union for schemas', () => {
-      expect(schemaMappedUnion(['public', 'audit'], 'Table')).toBe('public.Table | audit.Table');
+    it('should create union for schemas with sanitized names', () => {
+      // 'public' is a reserved word, so it becomes '_public'
+      expect(schemaMappedUnion(['public', 'audit'], 'Table')).toBe('_public.Table | audit.Table');
+    });
+
+    it('should sanitize schema names with special characters', () => {
+      expect(schemaMappedUnion(['test schema', 'audit'], 'Table')).toBe('test_schema.Table | audit.Table');
     });
   });
 
   describe('schemaMappedArray', () => {
-    it('should create spread array for schemas', () => {
+    it('should create spread array for schemas with sanitized names', () => {
+      // 'public' is a reserved word, so it becomes '_public'
       expect(schemaMappedArray(['public', 'audit'], 'AllBaseTables')).toBe(
-        '[...public.AllBaseTables, ...audit.AllBaseTables]'
+        '[..._public.AllBaseTables, ...audit.AllBaseTables]'
       );
     });
   });
 
   describe('crossSchemaTypesForSchemas', () => {
-    it('should generate cross-schema types', () => {
+    it('should generate cross-schema types with sanitized namespace references', () => {
       const result = crossSchemaTypesForSchemas(['public', 'audit']);
 
+      // String literals keep original names (for SQL)
       expect(result).toContain("export type SchemaName = 'public' | 'audit'");
-      expect(result).toContain('export type Table =');
-      expect(result).toContain('export type AllSchemas =');
+      expect(result).toContain("export type AllSchemas = ['public', 'audit']");
+      // Type references use sanitized names ('public' -> '_public')
+      expect(result).toContain('export type Table = _public.Table | audit.Table');
     });
   });
 
@@ -322,9 +378,77 @@ describe('tables.ts', () => {
       expect(result).toContain('"audit.logs": audit.logs.Selectable');
     });
 
+    it('should sanitize schema and table names in type references', () => {
+      const relations: Relation[] = [
+        { schema: 'public', name: 'table with spaces', type: 'table', insertable: true },
+      ];
+      const result = crossSchemaTypesForAllTables(relations, 'public');
+
+      // String key keeps original name (for SQL)
+      expect(result).toContain('"table with spaces":');
+      // Type reference uses sanitized name
+      expect(result).toContain('table_with_spaces.Selectable');
+    });
+
+    it('should sanitize schema names with reserved words', () => {
+      const relations: Relation[] = [
+        { schema: 'public', name: 'logs', type: 'table', insertable: true },
+      ];
+      // When public is NOT the unprefixedSchema, it should be sanitized to _public
+      const result = crossSchemaTypesForAllTables(relations, null);
+
+      // String key keeps original 'public.logs'
+      expect(result).toContain('"public.logs":');
+      // Type reference uses _public (sanitized)
+      expect(result).toContain('_public.logs.Selectable');
+    });
+
     it('should return any for empty tables', () => {
       const result = crossSchemaTypesForAllTables([], 'public');
       expect(result).toContain('= any');
+    });
+  });
+
+  describe('tableMappedUnion sanitization', () => {
+    it('should sanitize table names with spaces', () => {
+      const relations: Relation[] = [
+        { schema: 'public', name: 'table with spaces', type: 'table', insertable: true },
+      ];
+      expect(tableMappedUnion(relations, 'Selectable')).toBe('table_with_spaces.Selectable');
+    });
+
+    it('should sanitize table names starting with numbers', () => {
+      const relations: Relation[] = [
+        { schema: 'public', name: '123table', type: 'table', insertable: true },
+      ];
+      expect(tableMappedUnion(relations, 'Table')).toBe('_123table.Table');
+    });
+  });
+
+  describe('generateSchemaInterface sanitization', () => {
+    it('should sanitize namespace references for tables with special names', () => {
+      const relations: Relation[] = [
+        { schema: 'public', name: 'table with spaces', type: 'table', insertable: true },
+      ];
+      const result = generateSchemaInterface(relations, 'public');
+
+      // String key keeps original name (for SQL lookups)
+      expect(result).toContain("'table with spaces':");
+      // Type references use sanitized namespace name
+      expect(result).toContain('Table: table_with_spaces.Table');
+    });
+
+    it('should sanitize schema namespace references for reserved words', () => {
+      const relations: Relation[] = [
+        { schema: 'public', name: 'logs', type: 'table', insertable: true },
+      ];
+      // When public is NOT the unprefixedSchema, namespace reference should be _public
+      const result = generateSchemaInterface(relations, null);
+
+      // String key keeps original 'public.logs' for SQL
+      expect(result).toContain("'public.logs':");
+      // Type reference uses _public (sanitized reserved word)
+      expect(result).toContain('Table: _public.logs.Table');
     });
   });
 });

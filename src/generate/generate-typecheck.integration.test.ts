@@ -18,9 +18,9 @@ import { finaliseConfig } from './config';
 import { tsForConfig } from './tsOutput';
 
 /**
- * Create a test schema in a non-reserved namespace.
- * Using 'testgen' instead of 'public' because 'public' is a reserved word
- * in JavaScript strict mode, and all ES modules use strict mode.
+ * Create test schemas for typecheck validation.
+ * Using 'testgen' as main schema to avoid cluttering the default 'public' schema.
+ * Also creates schemas with special characters to test namespace sanitization.
  */
 async function setupTypecheckTestSchema(pool: Pool): Promise<void> {
   // Create schema
@@ -82,10 +82,30 @@ async function setupTypecheckTestSchema(pool: Pool): Promise<void> {
     CREATE MATERIALIZED VIEW testgen.user_stats AS
     SELECT status, COUNT(*) as user_count FROM testgen.users GROUP BY status;
   `);
+
+  // Create table with spaces in name (for namespace sanitization testing)
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS testgen."table with spaces" (
+      id SERIAL PRIMARY KEY,
+      "column with spaces" TEXT
+    );
+  `);
+
+  // Create schema with space in name (for namespace sanitization testing)
+  await pool.query('CREATE SCHEMA IF NOT EXISTS "test schema"');
+
+  // Create table in schema with space
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS "test schema".users (
+      id SERIAL PRIMARY KEY,
+      name TEXT NOT NULL
+    );
+  `);
 }
 
 async function cleanTypecheckTestSchema(pool: Pool): Promise<void> {
   await pool.query('DROP SCHEMA IF EXISTS testgen CASCADE');
+  await pool.query('DROP SCHEMA IF EXISTS "test schema" CASCADE');
 }
 
 describe('Generated Schema TypeCheck - Integration Tests', () => {
@@ -105,11 +125,9 @@ describe('Generated Schema TypeCheck - Integration Tests', () => {
   }, 60000);
 
   describe('Schema Compilation', () => {
-    // NOTE: These tests use a custom 'testgen' schema instead of 'public' because
-    // the code generator creates `namespace public {...}` which is invalid TypeScript
-    // since 'public' is a reserved word in JavaScript strict mode (all ES modules
-    // are in strict mode). This is a known limitation of the Sapatos generator.
-    // See: https://github.com/architect-eng/sapatos/issues/XXX (TODO: file issue)
+    // NOTE: These tests use a custom 'testgen' schema to avoid cluttering the
+    // default 'public' schema with test objects. Schema/table names with special
+    // characters are now properly sanitized for valid TypeScript namespace names.
 
     it('should compile generated schema without TypeScript errors', async () => {
       const connectionConfig = getTestConnectionConfig();
@@ -145,6 +163,112 @@ describe('Generated Schema TypeCheck - Integration Tests', () => {
     // Note: Custom domain type tests removed because our test schema (testgen)
     // doesn't include custom domain types. The basic schema compilation test
     // above validates that the generated code is syntactically correct.
+
+    it('should compile schema with table containing spaces in name', async () => {
+      const connectionConfig = getTestConnectionConfig();
+      const config = finaliseConfig({
+        db: connectionConfig,
+        schemas: { testgen: { include: '*', exclude: [] } },
+      });
+
+      const { ts, customTypeSourceFiles } = await tsForConfig(config, () => void 0);
+      const project = createTempProject(ts, customTypeSourceFiles);
+
+      try {
+        const customFiles = Object.keys(customTypeSourceFiles).map((name) =>
+          path.join(project.schemaDir, 'custom', `${name}.ts`)
+        );
+        const result = typecheckFiles(project.rootDir, [project.schemaPath, ...customFiles]);
+
+        if (!result.success) {
+          console.error('TypeScript errors:\n', result.formattedDiagnostics);
+        }
+        expect(result.success).toBe(true);
+
+        // Verify sanitized namespace name is used (table_with_spaces instead of "table with spaces")
+        expect(ts).toContain('namespace table_with_spaces');
+        // Verify original table name is preserved in the Table type string
+        expect(ts).toContain("Table = 'testgen.table with spaces'");
+      } finally {
+        project.cleanup();
+      }
+    });
+
+    it('should compile schema with space in name', async () => {
+      const connectionConfig = getTestConnectionConfig();
+      const config = finaliseConfig({
+        db: connectionConfig,
+        schemas: {
+          testgen: { include: '*', exclude: [] },
+          'test schema': { include: '*', exclude: [] },
+        },
+        unprefixedSchema: null, // Force namespace generation for all schemas
+      });
+
+      const { ts, customTypeSourceFiles } = await tsForConfig(config, () => void 0);
+      const project = createTempProject(ts, customTypeSourceFiles);
+
+      try {
+        const customFiles = Object.keys(customTypeSourceFiles).map((name) =>
+          path.join(project.schemaDir, 'custom', `${name}.ts`)
+        );
+        const result = typecheckFiles(project.rootDir, [project.schemaPath, ...customFiles]);
+
+        if (!result.success) {
+          console.error('TypeScript errors:\n', result.formattedDiagnostics);
+        }
+        expect(result.success).toBe(true);
+
+        // Verify sanitized schema namespace name is used
+        expect(ts).toContain('namespace test_schema');
+        // Verify original schema name is preserved in string literals
+        expect(ts).toContain("'test schema'");
+      } finally {
+        project.cleanup();
+      }
+    });
+
+    it('should compile public schema with unprefixedSchema: null', async () => {
+      const connectionConfig = getTestConnectionConfig();
+      // First create a table in the public schema for this test
+      await pool.query(`
+        CREATE TABLE IF NOT EXISTS public.typecheck_test_table (
+          id SERIAL PRIMARY KEY,
+          name TEXT NOT NULL
+        );
+      `);
+
+      try {
+        const config = finaliseConfig({
+          db: connectionConfig,
+          schemas: {
+            public: { include: ['typecheck_test_table'], exclude: [] },
+          },
+          unprefixedSchema: null, // Force 'namespace public' -> 'namespace _public'
+        });
+
+        const { ts, customTypeSourceFiles } = await tsForConfig(config, () => void 0);
+        const project = createTempProject(ts, customTypeSourceFiles);
+
+        try {
+          const result = typecheckFiles(project.rootDir, [project.schemaPath]);
+
+          if (!result.success) {
+            console.error('TypeScript errors:\n', result.formattedDiagnostics);
+          }
+          expect(result.success).toBe(true);
+
+          // Verify the sanitized namespace name is used (_public for reserved word 'public')
+          expect(ts).toContain('namespace _public');
+          // Verify 'namespace public {' is NOT present (would be invalid TS)
+          expect(ts).not.toMatch(/namespace public\s*\{/);
+        } finally {
+          project.cleanup();
+        }
+      } finally {
+        await pool.query('DROP TABLE IF EXISTS public.typecheck_test_table');
+      }
+    });
   });
 
   describe('Type Usage Validation', () => {
@@ -153,8 +277,6 @@ describe('Generated Schema TypeCheck - Integration Tests', () => {
 
     beforeAll(async () => {
       const connectionConfig = getTestConnectionConfig();
-      // Exclude 'test with spaces' as it generates invalid TypeScript namespace names
-      // Use unprefixedSchema: null to avoid 'namespace public' which uses a reserved word
       const config = finaliseConfig({
         db: connectionConfig,
         schemas: { testgen: { include: '*', exclude: [] } },
@@ -546,8 +668,6 @@ void createUser;
 
     beforeAll(async () => {
       const connectionConfig = getTestConnectionConfig();
-      // Exclude 'test with spaces' as it generates invalid TypeScript namespace names
-      // Use unprefixedSchema: null to avoid 'namespace public' which uses a reserved word
       const config = finaliseConfig({
         db: connectionConfig,
         schemas: { testgen: { include: '*', exclude: [] } },
