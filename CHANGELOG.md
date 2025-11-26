@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.5.4](https://github.com/architect-eng/sapatos/compare/v0.5.3...v0.5.4) (2025-11-26)
+
+
+### Bug Fixes
+
+* **generate:** sanitize schema and table names for valid TypeScript namespaces ([231d5eb](https://github.com/architect-eng/sapatos/commit/231d5eb616819563f96d8596848618fe673ffa68))
+
 ## [0.5.3](https://github.com/architect-eng/sapatos/compare/v0.5.2...v0.5.3) (2025-11-25)
 
 
