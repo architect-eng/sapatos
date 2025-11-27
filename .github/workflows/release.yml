@@ -21,7 +21,7 @@ permissions:
 
 jobs:
   release-please:
-    runs-on: blacksmith-2vcpu-ubuntu-2204
+    runs-on: ubuntu-latest
     outputs:
       release_created: ${{ steps.release.outputs.release_created }}
       tag_name: ${{ steps.release.outputs.tag_name }}
@@ -37,7 +37,7 @@ jobs:
     needs: release-please
     # Only run if a release was created and not in dry-run mode
     if: needs.release-please.outputs.release_created && (github.event.inputs.dry_run != 'true')
-    runs-on: blacksmith-2vcpu-ubuntu-2204
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
 
