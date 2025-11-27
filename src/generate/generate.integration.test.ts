@@ -402,4 +402,147 @@ describe('generate - Integration Tests', () => {
       expect(emailFile).toContain('export type PgEmail_address =');
     });
   });
+
+  describe('baseTypeMappings config option', () => {
+    it('should create base type custom type with mapped TypeScript type', async () => {
+      const queryFn = (q: { text: string; values?: unknown[] }) => pool.query(q);
+      const enums = await enumDataForSchema('public', queryFn);
+      const domains = await domainsInSchema('public', queryFn);
+      const config = finaliseConfig({
+        baseTypeMappings: {
+          'test_composite': '[string, string]',
+        },
+      });
+      const customTypes: Record<string, string | { tsType: string; baseTypeRef?: string; isBaseTypeMapping?: boolean }> = {};
+
+      const relation = { schema: 'public', name: 'test_entities', type: 'table' as const, insertable: true };
+      await definitionForRelationInSchema(relation, 'public', enums, customTypes, config, queryFn, domains);
+
+      // Base type should have the mapped TypeScript type
+      expect(customTypes['PgTest_composite']).toEqual({
+        tsType: '[string, string]',
+        isBaseTypeMapping: true,
+      });
+    });
+
+    it('should create domain custom type referencing base type', async () => {
+      const queryFn = (q: { text: string; values?: unknown[] }) => pool.query(q);
+      const enums = await enumDataForSchema('public', queryFn);
+      const domains = await domainsInSchema('public', queryFn);
+      const config = finaliseConfig({
+        baseTypeMappings: {
+          'test_composite': '[string, string]',
+        },
+      });
+      const customTypes: Record<string, string | { tsType: string; baseTypeRef?: string; isBaseTypeMapping?: boolean }> = {};
+
+      const relation = { schema: 'public', name: 'test_entities', type: 'table' as const, insertable: true };
+      await definitionForRelationInSchema(relation, 'public', enums, customTypes, config, queryFn, domains);
+
+      // Domain should reference the base type
+      expect(customTypes['PgEntity_id']).toEqual({
+        tsType: 'PgTest_composite',
+        baseTypeRef: 'PgTest_composite',
+      });
+
+      // Other domain should also reference the base type
+      expect(customTypes['PgOther_entity_id']).toEqual({
+        tsType: 'PgTest_composite',
+        baseTypeRef: 'PgTest_composite',
+      });
+    });
+
+    it('should handle arrays of domains based on mapped types', async () => {
+      const queryFn = (q: { text: string; values?: unknown[] }) => pool.query(q);
+      const enums = await enumDataForSchema('public', queryFn);
+      const domains = await domainsInSchema('public', queryFn);
+      const config = finaliseConfig({
+        baseTypeMappings: {
+          'test_composite': '[string, string]',
+        },
+      });
+      const customTypes: Record<string, string | { tsType: string; baseTypeRef?: string; isBaseTypeMapping?: boolean }> = {};
+
+      const relation = { schema: 'public', name: 'test_entities', type: 'table' as const, insertable: true };
+      await definitionForRelationInSchema(relation, 'public', enums, customTypes, config, queryFn, domains);
+
+      // Array type should reference base type with []
+      expect(customTypes['PgEntity_id_array']).toEqual({
+        tsType: 'PgTest_composite[]',
+        baseTypeRef: 'PgTest_composite',
+      });
+    });
+
+    it('should not affect domains when base type is not mapped', async () => {
+      // Verify existing behavior is unchanged
+      const queryFn = (q: { text: string; values?: unknown[] }) => pool.query(q);
+      const enums = await enumDataForSchema('public', queryFn);
+      const domains = await domainsInSchema('public', queryFn);
+      const config = finaliseConfig({
+        baseTypeMappings: {},  // No mappings
+      });
+      const customTypes: Record<string, string | { tsType: string; baseTypeRef?: string; isBaseTypeMapping?: boolean }> = {};
+
+      const relation = { schema: 'public', name: 'test_entities', type: 'table' as const, insertable: true };
+      await definitionForRelationInSchema(relation, 'public', enums, customTypes, config, queryFn, domains);
+
+      // Domain should have 'any' as placeholder (existing behavior)
+      expect(customTypes['PgEntity_id']).toBe('any');
+      expect(customTypes['PgOther_entity_id']).toBe('any');
+      // Arrays of unknown types also get 'any' (not 'any[]') because tsTypeForPgType returns 'any' for unknown arrays
+      expect(customTypes['PgEntity_id_array']).toBe('any');
+    });
+
+    it('should generate correct file content using tsForConfig', async () => {
+      const connectionConfig = getTestConnectionConfig();
+      const config = finaliseConfig({
+        db: connectionConfig,
+        schemas: { public: { include: ['test_entities'], exclude: [] } },
+        baseTypeMappings: {
+          'test_composite': '[string, string]',
+        },
+      });
+
+      const debug = () => void 0;
+      const { customTypeSourceFiles } = await tsForConfig(config, debug);
+
+      // Base type file should have the mapping from config
+      const baseTypeFile = customTypeSourceFiles['PgTest_composite'];
+      expect(baseTypeFile).toBeDefined();
+      expect(baseTypeFile).toContain('export type PgTest_composite = [string, string];');
+      expect(baseTypeFile).toContain('base type mapping from config');
+
+      // Domain file should import and reference base type
+      const domainFile = customTypeSourceFiles['PgEntity_id'];
+      expect(domainFile).toBeDefined();
+      expect(domainFile).toContain("import type { PgTest_composite } from './PgTest_composite';");
+      expect(domainFile).toContain('export type PgEntity_id = PgTest_composite;');
+      expect(domainFile).toContain('domain based on test_composite');
+
+      // Array file should import and reference base type with []
+      const arrayFile = customTypeSourceFiles['PgEntity_id_array'];
+      expect(arrayFile).toBeDefined();
+      expect(arrayFile).toContain("import type { PgTest_composite } from './PgTest_composite';");
+      expect(arrayFile).toContain('export type PgEntity_id_array = PgTest_composite[];');
+    });
+
+    it('should generate correct schema referencing custom types', async () => {
+      const connectionConfig = getTestConnectionConfig();
+      const config = finaliseConfig({
+        db: connectionConfig,
+        schemas: { public: { include: ['test_entities'], exclude: [] } },
+        baseTypeMappings: {
+          'test_composite': '[string, string]',
+        },
+      });
+
+      const debug = () => void 0;
+      const { ts } = await tsForConfig(config, debug);
+
+      // Schema should reference custom types (not raw TypeScript types)
+      expect(ts).toContain('entity_id: c.PgEntity_id;');
+      expect(ts).toContain('other_entity_id: c.PgOther_entity_id | null;');
+      expect(ts).toContain('related_ids: c.PgEntity_id_array | null;');
+    });
+  });
 });

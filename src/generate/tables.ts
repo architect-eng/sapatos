@@ -4,7 +4,7 @@ import * as pg from 'pg';
 import { CompleteConfig } from './config';
 import type { EnumData } from './enums';
 import { tsTypeForPgType } from './pgTypes';
-import type { CustomTypes } from './tsOutput';
+import type { CustomTypes, CustomTypeInfo } from './tsOutput';
 
 
 export interface Relation {
@@ -331,7 +331,32 @@ export const definitionForRelationInSchema = async (
       const arrayCustomTypeName = arrayElementDomainName + '_array';
       const prefixedCustomType = transformCustomType(arrayCustomTypeName, config);
 
-      customTypes[prefixedCustomType] = selectableType;  // e.g., 'string[]'
+      // Check if the element domain's base type has a mapping
+      const domainInfo = domains?.get(arrayElementDomainName);
+      const baseTypeMapping = domainInfo
+        ? config.baseTypeMappings[domainInfo.baseTypeName]
+        : undefined;
+
+      if (baseTypeMapping !== undefined && domainInfo !== undefined) {
+        // Array of domain based on mapped type
+        const prefixedBaseType = transformCustomType(domainInfo.baseTypeName, config);
+
+        // Ensure base type entry exists
+        customTypes[prefixedBaseType] = {
+          tsType: baseTypeMapping,
+          isBaseTypeMapping: true,
+        } as CustomTypeInfo;
+
+        // Array type references base type with []
+        customTypes[prefixedCustomType] = {
+          tsType: `${prefixedBaseType}[]`,
+          baseTypeRef: prefixedBaseType,
+        } as CustomTypeInfo;
+      } else {
+        // Existing behavior
+        customTypes[prefixedCustomType] = selectableType;  // e.g., 'string[]'
+      }
+
       selectableType = JSONSelectableType = whereableType = insertableType = updatableType =
         'c.' + prefixedCustomType;
     } else if (selectableType === 'any' || effectiveDomainName !== null) {  // cases 2, 3, 4
@@ -339,7 +364,30 @@ export const definitionForRelationInSchema = async (
         customType: string = effectiveDomainName !== null ? effectiveDomainName : udtName,
         prefixedCustomType = transformCustomType(customType, config);
 
-      customTypes[prefixedCustomType] = selectableType;
+      // Check if the underlying base type has a mapping in config
+      const resolvedBaseType = domains?.get(effectiveDomainName ?? '')?.baseTypeName ?? udtName;
+      const baseTypeMapping = config.baseTypeMappings[resolvedBaseType];
+
+      if (baseTypeMapping !== undefined && effectiveDomainName !== null) {
+        // Domain based on a mapped type
+        const prefixedBaseType = transformCustomType(resolvedBaseType, config);
+
+        // Ensure the base type itself gets a custom type entry
+        customTypes[prefixedBaseType] = {
+          tsType: baseTypeMapping,
+          isBaseTypeMapping: true,
+        } as CustomTypeInfo;
+
+        // Domain references the base type
+        customTypes[prefixedCustomType] = {
+          tsType: prefixedBaseType,  // Will become: import { PgTypeid } from './PgTypeid'
+          baseTypeRef: prefixedBaseType,
+        } as CustomTypeInfo;
+      } else {
+        // Existing behavior: store the TS type directly
+        customTypes[prefixedCustomType] = selectableType;
+      }
+
       selectableType = JSONSelectableType = whereableType = insertableType = updatableType =
         'c.' + prefixedCustomType;
     }

@@ -50,6 +50,32 @@ export async function setupGenerateTestSchema(pool: Pool): Promise<void> {
     END $$;
   `);
 
+  // Create a composite type similar to typeid for testing baseTypeMappings
+  await pool.query(`
+    DO $$ BEGIN
+      CREATE TYPE test_composite AS (prefix varchar(63), uuid uuid);
+    EXCEPTION
+      WHEN duplicate_object THEN null;
+    END $$;
+  `);
+
+  // Create domains based on the composite type
+  await pool.query(`
+    DO $$ BEGIN
+      CREATE DOMAIN entity_id AS test_composite;
+    EXCEPTION
+      WHEN duplicate_object THEN null;
+    END $$;
+  `);
+
+  await pool.query(`
+    DO $$ BEGIN
+      CREATE DOMAIN other_entity_id AS test_composite;
+    EXCEPTION
+      WHEN duplicate_object THEN null;
+    END $$;
+  `);
+
   // Create tables with various column types
   await pool.query(`
     CREATE TABLE IF NOT EXISTS test_users (
@@ -132,6 +158,16 @@ export async function setupGenerateTestSchema(pool: Pool): Promise<void> {
     CREATE UNIQUE INDEX IF NOT EXISTS idx_category_name ON test_with_indexes(category, name);
   `);
 
+  // Create table using composite-based domains for testing baseTypeMappings
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS test_entities (
+      id SERIAL PRIMARY KEY,
+      entity_id entity_id NOT NULL,
+      other_entity_id other_entity_id,
+      related_ids entity_id[]
+    );
+  `);
+
   // Create table with special column names
   await pool.query(`
     CREATE TABLE IF NOT EXISTS "test with spaces" (
@@ -158,12 +194,16 @@ export async function cleanGenerateTestSchema(pool: Pool): Promise<void> {
   await pool.query('DROP VIEW IF EXISTS test_user_summary CASCADE;');
   await pool.query('DROP TABLE IF EXISTS "test with spaces" CASCADE;');
   await pool.query('DROP TABLE IF EXISTS test_with_indexes CASCADE;');
+  await pool.query('DROP TABLE IF EXISTS test_entities CASCADE;');
   await pool.query('DROP TABLE IF EXISTS test_computed CASCADE;');
   await pool.query('DROP TABLE IF EXISTS test_nullable_table CASCADE;');
   await pool.query('DROP TABLE IF EXISTS test_users CASCADE;');
+  await pool.query('DROP DOMAIN IF EXISTS other_entity_id CASCADE;');
+  await pool.query('DROP DOMAIN IF EXISTS entity_id CASCADE;');
   await pool.query('DROP DOMAIN IF EXISTS user_age CASCADE;');
   await pool.query('DROP DOMAIN IF EXISTS positive_int CASCADE;');
   await pool.query('DROP DOMAIN IF EXISTS email_address CASCADE;');
+  await pool.query('DROP TYPE IF EXISTS test_composite CASCADE;');
   await pool.query('DROP TYPE IF EXISTS priority_level CASCADE;');
   await pool.query('DROP TYPE IF EXISTS user_status CASCADE;');
 }

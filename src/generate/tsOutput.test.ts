@@ -48,6 +48,63 @@ describe('tsOutput.ts', () => {
       expect(result.PgType2).toBeDefined();
       expect(result.PgType3).toBeDefined();
     });
+
+    it('should generate base type mapping content (object format)', () => {
+      const result = sourceFilesForCustomTypes({
+        PgTypeid: { tsType: '[string, string]', isBaseTypeMapping: true },
+      });
+
+      expect(result.PgTypeid).toContain('export type PgTypeid = [string, string];');
+      expect(result.PgTypeid).toContain('base type mapping from config');
+      expect(result.PgTypeid).not.toContain('import');
+    });
+
+    it('should generate domain reference content with import', () => {
+      const result = sourceFilesForCustomTypes({
+        PgTenant_id: { tsType: 'PgTypeid', baseTypeRef: 'PgTypeid' },
+      });
+
+      expect(result.PgTenant_id).toContain("import type { PgTypeid } from './PgTypeid';");
+      expect(result.PgTenant_id).toContain('export type PgTenant_id = PgTypeid;');
+      expect(result.PgTenant_id).toContain('domain based on typeid');
+    });
+
+    it('should generate array domain reference content with import', () => {
+      const result = sourceFilesForCustomTypes({
+        PgTenant_id_array: { tsType: 'PgTypeid[]', baseTypeRef: 'PgTypeid' },
+      });
+
+      expect(result.PgTenant_id_array).toContain("import type { PgTypeid } from './PgTypeid';");
+      expect(result.PgTenant_id_array).toContain('export type PgTenant_id_array = PgTypeid[];');
+      expect(result.PgTenant_id_array).toContain('domain based on typeid');
+    });
+
+    it('should include db import for JSONValue base type mapping', () => {
+      const result = sourceFilesForCustomTypes({
+        PgJsonType: { tsType: 'db.JSONValue', isBaseTypeMapping: true },
+      });
+
+      expect(result.PgJsonType).toContain("import type * as db from '@architect-eng/sapatos/db';");
+      expect(result.PgJsonType).toContain('export type PgJsonType = db.JSONValue;');
+      expect(result.PgJsonType).toContain('base type mapping from config');
+    });
+
+    it('should handle mix of string and object custom types', () => {
+      const result = sourceFilesForCustomTypes({
+        PgOldStyle: 'string',
+        PgBaseType: { tsType: '[string, string]', isBaseTypeMapping: true },
+        PgDomain: { tsType: 'PgBaseType', baseTypeRef: 'PgBaseType' },
+      });
+
+      // Old style should work as before
+      expect(result.PgOldStyle).toContain('export type PgOldStyle = string;');
+      expect(result.PgOldStyle).toContain('replace with your custom type');
+
+      // New object format should generate appropriate content
+      expect(result.PgBaseType).toContain('export type PgBaseType = [string, string];');
+      expect(result.PgDomain).toContain("import type { PgBaseType } from './PgBaseType';");
+      expect(result.PgDomain).toContain('export type PgDomain = PgBaseType;');
+    });
   });
 
   describe('generateBarrelContent', () => {
