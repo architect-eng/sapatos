@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.5.5](https://github.com/architect-eng/sapatos/compare/v0.5.4...v0.5.5) (2025-11-27)
+
+
+### Bug Fixes
+
+* **generate:** resolve recursive domains and handle domain array types ([25b6eb1](https://github.com/architect-eng/sapatos/commit/25b6eb1e643a70517ae84c53c3fa318e8e6de7f1))
+
 ## [0.5.4](https://github.com/architect-eng/sapatos/compare/v0.5.3...v0.5.4) (2025-11-26)
 
 
