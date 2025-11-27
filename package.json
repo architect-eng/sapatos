@@ -1,6 +1,12 @@
 {
   "name": "@architect-eng/sapatos",
   "version": "0.6.0",
+  "license": "MIT",
+  "author": "Architect Technologies Ltd.",
+  "homepage": "https://github.com/architect-eng/sapatos",
+  "bugs": {
+    "url": "https://github.com/architect-eng/sapatos/issues"
+  },
   "repository": {
     "type": "git",
     "url": "https://github.com/architect-eng/sapatos"
