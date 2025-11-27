@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.6.0](https://github.com/architect-eng/sapatos/compare/v0.5.5...v0.6.0) (2025-11-27)
+
+
+### Features
+
+* **generate:** add baseTypeMappings config option for composite types ([c244661](https://github.com/architect-eng/sapatos/commit/c2446611a3e19f359b5d82c53e5b3532ac5bba51))
+
 ## [0.5.5](https://github.com/architect-eng/sapatos/compare/v0.5.4...v0.5.5) (2025-11-27)
 
 
