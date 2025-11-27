@@ -35,17 +35,47 @@ async function setupTypecheckTestSchema(pool: Pool): Promise<void> {
     END $$;
   `);
 
+  // Create domain type for testing
+  await pool.query(`
+    DO $$ BEGIN
+      CREATE DOMAIN testgen.email_address AS TEXT
+        CHECK (VALUE ~* '^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$');
+    EXCEPTION
+      WHEN duplicate_object THEN null;
+    END $$;
+  `);
+
+  // Create recursive domain types (domain based on domain)
+  // This tests the full domain chain resolution: user_age -> positive_int -> integer
+  await pool.query(`
+    DO $$ BEGIN
+      CREATE DOMAIN testgen.positive_int AS INTEGER CHECK (VALUE > 0);
+    EXCEPTION
+      WHEN duplicate_object THEN null;
+    END $$;
+  `);
+
+  await pool.query(`
+    DO $$ BEGIN
+      CREATE DOMAIN testgen.user_age AS testgen.positive_int CHECK (VALUE < 150);
+    EXCEPTION
+      WHEN duplicate_object THEN null;
+    END $$;
+  `);
+
   // Create basic table
   await pool.query(`
     CREATE TABLE IF NOT EXISTS testgen.users (
       id SERIAL PRIMARY KEY,
       name TEXT NOT NULL,
-      email TEXT NOT NULL,
+      email testgen.email_address NOT NULL,
       status testgen.user_status DEFAULT 'pending',
       age INTEGER,
+      user_age testgen.user_age,
       is_admin BOOLEAN DEFAULT FALSE,
       metadata JSONB,
       tags TEXT[],
+      email_addresses testgen.email_address[],
       created_at TIMESTAMPTZ DEFAULT NOW()
     );
   `);
@@ -77,10 +107,11 @@ async function setupTypecheckTestSchema(pool: Pool): Promise<void> {
   `);
 
   // Create materialized view
+  // Note: includes user_age column to test recursive domain resolution on mviews
   await pool.query(`
     DROP MATERIALIZED VIEW IF EXISTS testgen.user_stats;
     CREATE MATERIALIZED VIEW testgen.user_stats AS
-    SELECT status, COUNT(*) as user_count FROM testgen.users GROUP BY status;
+    SELECT status, COUNT(*) as user_count, MIN(user_age) as min_user_age FROM testgen.users GROUP BY status;
   `);
 
   // Create table with spaces in name (for namespace sanitization testing)
@@ -581,7 +612,7 @@ const status3: schema.testgen.user_status = 'pending';
 // Use in Insertable
 const userWithStatus: schema.testgen.users.Insertable = {
   name: 'Test',
-  email: 'test@test.com',
+  email: 'test@test.com' as any,
   status: 'active',
 };
 
@@ -590,6 +621,94 @@ void status;
 void status2;
 void status3;
 void userWithStatus;
+`;
+
+      try {
+        const usagePath = writeUsageFile(project, usageCode);
+        const customFiles = Object.keys(customTypeSourceFiles).map((name) =>
+          path.join(project.schemaDir, 'custom', `${name}.ts`)
+        );
+        const result = typecheckFiles(project.rootDir, [
+          project.schemaPath,
+          usagePath,
+          ...customFiles,
+        ]);
+
+        expectTypeCheckSuccess(result);
+        expect(result.success).toBe(true);
+      } finally {
+        project.cleanup();
+      }
+    });
+
+    it('should compile code using recursive domain types', () => {
+      const project = createTempProject(schemaTs, customTypeSourceFiles);
+
+      const usageCode = `
+import * as schema from './@architect-eng/sapatos/schema';
+import * as c from './@architect-eng/sapatos/custom';
+
+// Test that recursive domain type (user_age -> positive_int -> integer) works
+function processUser(user: schema.testgen.users.Selectable): void {
+  // user_age should be a custom type that accepts number values
+  const age: c.PgUser_age | null = user.user_age;
+  void age;
+}
+
+// Use in Insertable - should accept number values
+const userWithAge: schema.testgen.users.Insertable = {
+  name: 'Test',
+  email: 'test@test.com' as any,
+  user_age: 25 as any,  // Should accept number
+};
+
+// Suppress unused variable warnings
+void processUser;
+void userWithAge;
+`;
+
+      try {
+        const usagePath = writeUsageFile(project, usageCode);
+        const customFiles = Object.keys(customTypeSourceFiles).map((name) =>
+          path.join(project.schemaDir, 'custom', `${name}.ts`)
+        );
+        const result = typecheckFiles(project.rootDir, [
+          project.schemaPath,
+          usagePath,
+          ...customFiles,
+        ]);
+
+        expectTypeCheckSuccess(result);
+        expect(result.success).toBe(true);
+      } finally {
+        project.cleanup();
+      }
+    });
+
+    it('should compile code using domain array types', () => {
+      const project = createTempProject(schemaTs, customTypeSourceFiles);
+
+      const usageCode = `
+import * as schema from './@architect-eng/sapatos/schema';
+import * as c from './@architect-eng/sapatos/custom';
+
+// Test that domain array type (email_address[]) works
+function processUser(user: schema.testgen.users.Selectable): void {
+  // email_addresses should be a custom array type
+  const emails: c.PgEmail_address_array | null = user.email_addresses;
+  void emails;
+}
+
+// Use in Insertable - should accept string[] values
+const userWithEmails: schema.testgen.users.Insertable = {
+  name: 'Test',
+  email: 'test@test.com' as any,
+  email_addresses: ['a@b.com', 'c@d.com'] as any,  // Should accept string[]
+};
+
+// Suppress unused variable warnings
+void processUser;
+void userWithEmails;
 `;
 
       try {

@@ -32,6 +32,24 @@ export async function setupGenerateTestSchema(pool: Pool): Promise<void> {
     END $$;
   `);
 
+  // Create recursive domain types (domain based on domain)
+  // This tests the full domain chain resolution: user_age -> positive_int -> integer
+  await pool.query(`
+    DO $$ BEGIN
+      CREATE DOMAIN positive_int AS INTEGER CHECK (VALUE > 0);
+    EXCEPTION
+      WHEN duplicate_object THEN null;
+    END $$;
+  `);
+
+  await pool.query(`
+    DO $$ BEGIN
+      CREATE DOMAIN user_age AS positive_int CHECK (VALUE < 150);
+    EXCEPTION
+      WHEN duplicate_object THEN null;
+    END $$;
+  `);
+
   // Create tables with various column types
   await pool.query(`
     CREATE TABLE IF NOT EXISTS test_users (
@@ -40,6 +58,7 @@ export async function setupGenerateTestSchema(pool: Pool): Promise<void> {
       email email_address NOT NULL UNIQUE,
       status user_status DEFAULT 'pending',
       age INTEGER,
+      user_age user_age,
       balance NUMERIC(10, 2),
       big_number BIGINT,
       is_admin BOOLEAN DEFAULT FALSE,
@@ -50,7 +69,8 @@ export async function setupGenerateTestSchema(pool: Pool): Promise<void> {
       birth_date DATE,
       work_hours TIME,
       tags TEXT[],
-      scores INTEGER[]
+      scores INTEGER[],
+      email_addresses email_address[]
     );
   `);
 
@@ -92,6 +112,14 @@ export async function setupGenerateTestSchema(pool: Pool): Promise<void> {
     GROUP BY status;
   `);
 
+  // Create a simpler materialized view for testing domain resolution
+  // This directly selects domain columns without aggregation
+  await pool.query(`
+    DROP MATERIALIZED VIEW IF EXISTS test_user_domains_mview;
+    CREATE MATERIALIZED VIEW test_user_domains_mview AS
+    SELECT id, email, user_age FROM test_users;
+  `);
+
   // Create table with unique indexes
   await pool.query(`
     CREATE TABLE IF NOT EXISTS test_with_indexes (
@@ -125,6 +153,7 @@ export async function setupGenerateTestSchema(pool: Pool): Promise<void> {
  * Clean up test schema
  */
 export async function cleanGenerateTestSchema(pool: Pool): Promise<void> {
+  await pool.query('DROP MATERIALIZED VIEW IF EXISTS test_user_domains_mview CASCADE;');
   await pool.query('DROP MATERIALIZED VIEW IF EXISTS test_user_stats CASCADE;');
   await pool.query('DROP VIEW IF EXISTS test_user_summary CASCADE;');
   await pool.query('DROP TABLE IF EXISTS "test with spaces" CASCADE;');
@@ -132,6 +161,8 @@ export async function cleanGenerateTestSchema(pool: Pool): Promise<void> {
   await pool.query('DROP TABLE IF EXISTS test_computed CASCADE;');
   await pool.query('DROP TABLE IF EXISTS test_nullable_table CASCADE;');
   await pool.query('DROP TABLE IF EXISTS test_users CASCADE;');
+  await pool.query('DROP DOMAIN IF EXISTS user_age CASCADE;');
+  await pool.query('DROP DOMAIN IF EXISTS positive_int CASCADE;');
   await pool.query('DROP DOMAIN IF EXISTS email_address CASCADE;');
   await pool.query('DROP TYPE IF EXISTS priority_level CASCADE;');
   await pool.query('DROP TYPE IF EXISTS user_status CASCADE;');

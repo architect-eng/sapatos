@@ -37,6 +37,70 @@ interface UniqueIndexRow {
   indexname: string;
 }
 
+/**
+ * Information about a domain type, including its fully resolved base type.
+ */
+export interface DomainInfo {
+  domainName: string;
+  baseTypeName: string;  // The ultimate base type (e.g., 'int4' for user_age -> positive_int -> int4)
+}
+
+/**
+ * Query all domains in a schema and resolve their full type chains.
+ * This handles recursive domains (domain based on domain based on base type).
+ */
+export const domainsInSchema = async (
+  schemaName: string,
+  queryFn: (q: pg.QueryConfig) => Promise<pg.QueryResult>
+): Promise<Map<string, DomainInfo>> => {
+  const { rows } = await queryFn({
+    text: `
+      WITH RECURSIVE domain_chain AS (
+        -- Base case: all domains in the schema
+        SELECT
+          t.typname AS domain_name,
+          t.typname AS current_type,
+          t.typbasetype,
+          bt.typname AS base_type_name,
+          bt.typtype AS base_type_type,
+          1 AS depth
+        FROM pg_catalog.pg_type t
+        JOIN pg_catalog.pg_namespace n ON t.typnamespace = n.oid
+        JOIN pg_catalog.pg_type bt ON bt.oid = t.typbasetype
+        WHERE t.typtype = 'd' AND n.nspname = $1
+
+        UNION ALL
+
+        -- Recursive case: follow the chain if base type is also a domain
+        SELECT
+          d.domain_name,
+          bt.typname AS current_type,
+          bt.typbasetype,
+          bt2.typname AS base_type_name,
+          bt2.typtype AS base_type_type,
+          d.depth + 1
+        FROM domain_chain d
+        JOIN pg_catalog.pg_type bt ON bt.oid = d.typbasetype
+        LEFT JOIN pg_catalog.pg_type bt2 ON bt2.oid = bt.typbasetype
+        WHERE d.base_type_type = 'd'  -- Continue only if base is also a domain
+      )
+      SELECT DISTINCT ON (domain_name)
+        domain_name AS "domainName",
+        base_type_name AS "baseTypeName"
+      FROM domain_chain
+      WHERE base_type_type != 'd'  -- Only get the final non-domain base type
+      ORDER BY domain_name, depth DESC
+    `,
+    values: [schemaName],
+  }) as pg.QueryResult<DomainInfo>;
+
+  const domainMap = new Map<string, DomainInfo>();
+  for (const row of rows) {
+    domainMap.set(row.domainName, row);
+  }
+  return domainMap;
+};
+
 export const relationsInSchema = async (schemaName: string, queryFn: (q: pg.QueryConfig) => Promise<pg.QueryResult>): Promise<Relation[]> => {
   const { rows } = await queryFn({
     text: `
@@ -77,14 +141,13 @@ const columnsForRelation = async (rel: Relation, schemaName: string, queryFn: (q
         , true AS "isGenerated"  -- true, to reflect that we can't write to materalized views
         , false AS "hasDefault"   -- irrelevant, since we can't write to materalized views
         , NULL as "defaultValue"
-        , CASE WHEN t1.typtype = 'd' THEN t2.typname ELSE t1.typname END AS "udtName"
+        , t1.typname AS "udtName"
         , CASE WHEN t1.typtype = 'd' THEN t1.typname ELSE NULL END AS "domainName"
         , d.description AS "description"
         FROM pg_catalog.pg_class c
         LEFT JOIN pg_catalog.pg_attribute a ON c.oid = a.attrelid
         LEFT JOIN pg_catalog.pg_namespace n ON c.relnamespace = n.oid
         LEFT JOIN pg_catalog.pg_type t1 ON t1.oid = a.atttypid
-        LEFT JOIN pg_catalog.pg_type t2 ON t2.oid = t1.typbasetype
         LEFT JOIN pg_catalog.pg_description d ON d.objoid = c.oid AND d.objsubid = a.attnum
         WHERE c.relkind = 'm' AND a.attnum >= 1 AND c.relname = $1 AND n.nspname = $2
         ORDER BY "column"`
@@ -182,6 +245,7 @@ export const definitionForRelationInSchema = async (
   customTypes: CustomTypes,  // an 'out' parameter
   config: CompleteConfig,
   queryFn: (q: pg.QueryConfig) => Promise<pg.QueryResult>,
+  domains?: Map<string, DomainInfo>,  // optional domain lookup for recursive resolution
 ) => {
   const
     rows = await columnsForRelation(rel, schemaName, queryFn),
@@ -192,7 +256,44 @@ export const definitionForRelationInSchema = async (
     updatables: string[] = [];
 
   rows.forEach((row: ColumnRow) => {
-    const { column, isGenerated, isNullable, hasDefault, udtName, domainName } = row;
+    const { column, isGenerated, isNullable, hasDefault, domainName } = row;
+    let { udtName } = row;
+
+    // Resolve domain chains: if udtName is a domain (or domainName is set), look up the ultimate base type
+    // This handles recursive domains like: user_age -> positive_int -> int4
+    let resolvedDomainName = domainName;
+    let isArrayOfDomain = false;
+    let arrayElementDomainName: string | null = null;
+
+    if (domains !== undefined) {
+      if (domainName !== null && domains.has(domainName)) {
+        // Column has a declared domain - resolve it to the ultimate base type
+        // Keep the original domain name (user_age), but use the resolved base type (int4)
+        const domainInfo = domains.get(domainName);
+        if (domainInfo !== undefined) {
+          udtName = domainInfo.baseTypeName;
+        }
+      } else if (udtName.charAt(0) === '_') {
+        // Check if this is an array of a domain type (e.g., _email_address for email_address[])
+        const strippedName = udtName.slice(1);
+        const domainInfo = domains.get(strippedName);
+        if (domainInfo) {
+          // This is an array of domain type
+          isArrayOfDomain = true;
+          arrayElementDomainName = strippedName;
+          // Resolve to the array of base type (e.g., _text for email_address[])
+          udtName = '_' + domainInfo.baseTypeName;
+        }
+      } else {
+        // Check if udtName itself is a domain we need to resolve (e.g., for mviews)
+        const domainInfo = domains.get(udtName);
+        if (domainInfo) {
+          resolvedDomainName = udtName;  // The udtName IS the domain
+          udtName = domainInfo.baseTypeName;  // Replace with the resolved base type
+        }
+      }
+    }
+
     let
       selectableType = tsTypeForPgType(udtName, enums, 'Selectable', config),
       JSONSelectableType = tsTypeForPgType(udtName, enums, 'JSONSelectable', config),
@@ -214,17 +315,28 @@ export const definitionForRelationInSchema = async (
       orDefault = (isNullable || hasDefault) ? ' | db.DefaultType' : '',
       possiblyQuotedColumn = quoteIfIllegalIdentifier(column);
 
-    // Now, 4 cases:
+    // Now, 5 cases:
     //   1. null domain, known udt        <-- standard case
     //   2. null domain, unknown udt      <-- custom type:       create type file, with placeholder 'any'
     //   3. non-null domain, known udt    <-- alias type:        create type file, with udt-based placeholder
     //   4. non-null domain, unknown udt  <-- alias custom type: create type file, with placeholder 'any'
+    //   5. array of domain              <-- create distinct array custom type with base_type[] hint
 
-    // Note: arrays of domains or custom types are treated as their own custom types
+    // Use resolvedDomainName which accounts for domain chain resolution
+    const effectiveDomainName = resolvedDomainName ?? domainName;
 
-    if (selectableType === 'any' || domainName !== null) {  // cases 2, 3, 4
+    if (isArrayOfDomain && arrayElementDomainName !== null) {
+      // Case 5: Array of domain type - create distinct custom type with _array suffix
+      // selectableType here is already the array of base type (e.g., 'string[]')
+      const arrayCustomTypeName = arrayElementDomainName + '_array';
+      const prefixedCustomType = transformCustomType(arrayCustomTypeName, config);
+
+      customTypes[prefixedCustomType] = selectableType;  // e.g., 'string[]'
+      selectableType = JSONSelectableType = whereableType = insertableType = updatableType =
+        'c.' + prefixedCustomType;
+    } else if (selectableType === 'any' || effectiveDomainName !== null) {  // cases 2, 3, 4
       const
-        customType: string = domainName !== null ? domainName : udtName,
+        customType: string = effectiveDomainName !== null ? effectiveDomainName : udtName,
         prefixedCustomType = transformCustomType(customType, config);
 
       customTypes[prefixedCustomType] = selectableType;

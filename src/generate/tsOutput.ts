@@ -8,6 +8,7 @@ import { header } from './header';
 import {
   Relation,
   relationsInSchema,
+  domainsInSchema,
   definitionForRelationInSchema,
   crossTableTypesForTables,
   crossSchemaTypesForAllTables,
@@ -82,8 +83,9 @@ export const tsForConfig = async (config: CompleteConfig, debug: (s: string) => 
               .filter(rel => rules.include === '*' || rules.include.indexOf(rel.name) >= 0)
               .filter(rel => rules.exclude.indexOf(rel.name) < 0),
           enums = await enumDataForSchema(schema, queryFn),
+          domains = await domainsInSchema(schema, queryFn),
           tableDefs = await Promise.all(tables.map(async table =>
-            definitionForRelationInSchema(table, schema, enums, customTypes, config, queryFn))),
+            definitionForRelationInSchema(table, schema, enums, customTypes, config, queryFn, domains))),
           schemaIsUnprefixed = schema === config.unprefixedSchema,
           sanitizedSchema = sanitizeNamespaceIdentifier(schema),
           none = '/* (none) */',

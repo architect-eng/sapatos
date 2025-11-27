@@ -12,7 +12,7 @@ import {
 } from '../test-helpers/integration-db';
 import { finaliseConfig } from './config';
 import { enumDataForSchema } from './enums';
-import { relationsInSchema, definitionForRelationInSchema } from './tables';
+import { relationsInSchema, domainsInSchema, definitionForRelationInSchema } from './tables';
 import { tsForConfig } from './tsOutput';
 
 describe('generate - Integration Tests', () => {
@@ -99,11 +99,12 @@ describe('generate - Integration Tests', () => {
     it('should generate type definition for table with various columns', async () => {
       const queryFn = (q: { text: string; values?: unknown[] }) => pool.query(q);
       const enums = await enumDataForSchema('public', queryFn);
+      const domains = await domainsInSchema('public', queryFn);
       const config = finaliseConfig({});
       const customTypes: Record<string, string> = {};
 
       const relation = { schema: 'public', name: 'test_users', type: 'table' as const, insertable: true };
-      const result = await definitionForRelationInSchema(relation, 'public', enums, customTypes, config, queryFn);
+      const result = await definitionForRelationInSchema(relation, 'public', enums, customTypes, config, queryFn, domains);
 
       // Check namespace structure
       expect(result).toContain('export namespace test_users');
@@ -134,11 +135,12 @@ describe('generate - Integration Tests', () => {
     it('should handle domain types as custom types', async () => {
       const queryFn = (q: { text: string; values?: unknown[] }) => pool.query(q);
       const enums = await enumDataForSchema('public', queryFn);
+      const domains = await domainsInSchema('public', queryFn);
       const config = finaliseConfig({});
       const customTypes: Record<string, string> = {};
 
       const relation = { schema: 'public', name: 'test_users', type: 'table' as const, insertable: true };
-      await definitionForRelationInSchema(relation, 'public', enums, customTypes, config, queryFn);
+      await definitionForRelationInSchema(relation, 'public', enums, customTypes, config, queryFn, domains);
 
       // email_address domain should be captured as custom type
       expect(customTypes).toHaveProperty('PgEmail_address');
@@ -147,11 +149,12 @@ describe('generate - Integration Tests', () => {
     it('should generate read-only types for materialized views', async () => {
       const queryFn = (q: { text: string; values?: unknown[] }) => pool.query(q);
       const enums = await enumDataForSchema('public', queryFn);
+      const domains = await domainsInSchema('public', queryFn);
       const config = finaliseConfig({});
       const customTypes: Record<string, string> = {};
 
       const relation = { schema: 'public', name: 'test_user_stats', type: 'mview' as const, insertable: false };
-      const result = await definitionForRelationInSchema(relation, 'public', enums, customTypes, config, queryFn);
+      const result = await definitionForRelationInSchema(relation, 'public', enums, customTypes, config, queryFn, domains);
 
       // Insertable and Updatable should be empty for mviews
       expect(result).toContain('export type Insertable = Record<string, never>');
@@ -161,11 +164,12 @@ describe('generate - Integration Tests', () => {
     it('should handle generated columns', async () => {
       const queryFn = (q: { text: string; values?: unknown[] }) => pool.query(q);
       const enums = await enumDataForSchema('public', queryFn);
+      const domains = await domainsInSchema('public', queryFn);
       const config = finaliseConfig({});
       const customTypes: Record<string, string> = {};
 
       const relation = { schema: 'public', name: 'test_computed', type: 'table' as const, insertable: true };
-      const result = await definitionForRelationInSchema(relation, 'public', enums, customTypes, config, queryFn);
+      const result = await definitionForRelationInSchema(relation, 'public', enums, customTypes, config, queryFn, domains);
 
       // full_name should be in Selectable but not in Insertable (generated)
       expect(result).toMatch(/type Selectable = \{[^}]*full_name: string/s);
@@ -177,11 +181,12 @@ describe('generate - Integration Tests', () => {
     it('should quote illegal identifiers', async () => {
       const queryFn = (q: { text: string; values?: unknown[] }) => pool.query(q);
       const enums = await enumDataForSchema('public', queryFn);
+      const domains = await domainsInSchema('public', queryFn);
       const config = finaliseConfig({});
       const customTypes: Record<string, string> = {};
 
       const relation = { schema: 'public', name: 'test with spaces', type: 'table' as const, insertable: true };
-      const result = await definitionForRelationInSchema(relation, 'public', enums, customTypes, config, queryFn);
+      const result = await definitionForRelationInSchema(relation, 'public', enums, customTypes, config, queryFn, domains);
 
       expect(result).toContain('"column with spaces"');
       expect(result).toContain('"123numeric_start"');
@@ -191,15 +196,94 @@ describe('generate - Integration Tests', () => {
     it('should include unique indexes', async () => {
       const queryFn = (q: { text: string; values?: unknown[] }) => pool.query(q);
       const enums = await enumDataForSchema('public', queryFn);
+      const domains = await domainsInSchema('public', queryFn);
       const config = finaliseConfig({});
       const customTypes: Record<string, string> = {};
 
       const relation = { schema: 'public', name: 'test_with_indexes', type: 'table' as const, insertable: true };
-      const result = await definitionForRelationInSchema(relation, 'public', enums, customTypes, config, queryFn);
+      const result = await definitionForRelationInSchema(relation, 'public', enums, customTypes, config, queryFn, domains);
 
       expect(result).toContain("'idx_code'");
       expect(result).toContain("'idx_category_name'");
       expect(result).toContain("'test_with_indexes_pkey'");
+    });
+  });
+
+  describe('recursive domain types', () => {
+    it('should resolve recursive domain to base type for regular tables', async () => {
+      // user_age -> positive_int -> integer should resolve to 'number'
+      const queryFn = (q: { text: string; values?: unknown[] }) => pool.query(q);
+      const enums = await enumDataForSchema('public', queryFn);
+      const domains = await domainsInSchema('public', queryFn);
+      const config = finaliseConfig({});
+      const customTypes: Record<string, string> = {};
+
+      const relation = { schema: 'public', name: 'test_users', type: 'table' as const, insertable: true };
+      await definitionForRelationInSchema(relation, 'public', enums, customTypes, config, queryFn, domains);
+
+      // Should have custom type for user_age domain
+      expect(customTypes).toHaveProperty('PgUser_age');
+      // The base type should be 'number' (from integer), not 'any'
+      expect(customTypes['PgUser_age']).toBe('number');
+    });
+
+    it('should resolve recursive domain to base type for materialized views', async () => {
+      // user_age column uses recursive domain (user_age -> positive_int -> integer)
+      // Should resolve to 'number', not 'any'
+      const queryFn = (q: { text: string; values?: unknown[] }) => pool.query(q);
+      const enums = await enumDataForSchema('public', queryFn);
+      const domains = await domainsInSchema('public', queryFn);
+      const config = finaliseConfig({});
+      const customTypes: Record<string, string> = {};
+
+      // Use mview that directly selects domain columns (not aggregates)
+      const relation = { schema: 'public', name: 'test_user_domains_mview', type: 'mview' as const, insertable: false };
+      await definitionForRelationInSchema(relation, 'public', enums, customTypes, config, queryFn, domains);
+
+      // Should have custom types for both email_address and user_age domains
+      expect(customTypes).toHaveProperty('PgEmail_address');
+      expect(customTypes).toHaveProperty('PgUser_age');
+      // The base types should be resolved correctly
+      expect(customTypes['PgEmail_address']).toBe('string');
+      expect(customTypes['PgUser_age']).toBe('number');
+    });
+  });
+
+  describe('arrays of domain types', () => {
+    it('should create distinct custom type for domain array', async () => {
+      // email_addresses (email_address[]) should NOT collide with email (email_address)
+      const queryFn = (q: { text: string; values?: unknown[] }) => pool.query(q);
+      const enums = await enumDataForSchema('public', queryFn);
+      const domains = await domainsInSchema('public', queryFn);
+      const config = finaliseConfig({});
+      const customTypes: Record<string, string> = {};
+
+      const relation = { schema: 'public', name: 'test_users', type: 'table' as const, insertable: true };
+      await definitionForRelationInSchema(relation, 'public', enums, customTypes, config, queryFn, domains);
+
+      // Should have both scalar and array custom types
+      expect(customTypes).toHaveProperty('PgEmail_address');
+      expect(customTypes).toHaveProperty('PgEmail_address_array');
+
+      // Scalar type should have string type hint
+      expect(customTypes['PgEmail_address']).toBe('string');
+      // Array type should have array type hint
+      expect(customTypes['PgEmail_address_array']).toBe('string[]');
+    });
+
+    it('should preserve array semantics in generated TypeScript', async () => {
+      // Verify the generated type definition uses the array custom type correctly
+      const queryFn = (q: { text: string; values?: unknown[] }) => pool.query(q);
+      const enums = await enumDataForSchema('public', queryFn);
+      const domains = await domainsInSchema('public', queryFn);
+      const config = finaliseConfig({});
+      const customTypes: Record<string, string> = {};
+
+      const relation = { schema: 'public', name: 'test_users', type: 'table' as const, insertable: true };
+      const result = await definitionForRelationInSchema(relation, 'public', enums, customTypes, config, queryFn, domains);
+
+      // email_addresses column should use the array custom type
+      expect(result).toContain('email_addresses: c.PgEmail_address_array');
     });
   });
 
