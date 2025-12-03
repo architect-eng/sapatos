@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.6.1](https://github.com/architect-eng/sapatos/compare/v0.6.0...v0.6.1) (2025-12-03)
+
+
+### Bug Fixes
+
+* **generate:** ensure deterministic output ordering in code generation ([bab0843](https://github.com/architect-eng/sapatos/commit/bab0843bc60eb750e21a554f157f1e6b60d42164))
+
 ## [0.6.0](https://github.com/architect-eng/sapatos/compare/v0.5.5...v0.6.0) (2025-11-27)
 
 
