@@ -45,7 +45,7 @@ export const generate = async (suppliedConfig: Config) => {
   if (Object.keys(customTypeSourceFiles).length > 0) {
     fs.mkdirSync(customFolderTargetPath, { recursive: true });
 
-    for (const customTypeFileName in customTypeSourceFiles) {
+    for (const customTypeFileName of Object.keys(customTypeSourceFiles).sort()) {
       const customTypeFilePath = path.join(customFolderTargetPath, customTypeFileName + config.outExt);
       if (fs.existsSync(customTypeFilePath)) {
         log(`Custom type or domain declaration file already exists: ${customTypeFilePath}`);

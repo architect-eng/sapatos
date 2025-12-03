@@ -82,7 +82,8 @@ export const sourceFilesForCustomTypes = (customTypes: CustomTypes) =>
     }));
 
 export const generateBarrelContent = (customTypeNames: string[]) =>
-  customTypeNames
+  [...customTypeNames]
+    .sort()
     .map(name => `export * from './${name}';`)
     .join('\n') + (customTypeNames.length > 0 ? '\n' : '');
 
@@ -109,7 +110,7 @@ export const tsForConfig = async (config: CompleteConfig, debug: (s: string) => 
       }
     },
     customTypes = {},
-    schemaNames = Object.keys(schemas),
+    schemaNames = Object.keys(schemas).sort(),
     schemaData = (await Promise.all(
       schemaNames.map(async schema => {
         const rules = schemas[schema];
