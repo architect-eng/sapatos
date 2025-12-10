@@ -223,6 +223,7 @@ jobs:
         uses: ./.github/actions/publish-package
         with:
           registry: 'gh'
+          auth-token: ${{ secrets.GITHUB_TOKEN }}
 
   publish-npmjs:
     needs:
@@ -239,8 +240,7 @@ jobs:
 
   push-changes:
     needs:
-      - publish-gh
-      - publish-npmjs
+      - create-release
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
