@@ -28,13 +28,18 @@ inputs:
 runs:
   using: 'composite'
   steps:
+    - name: Download release files with version info
+      if: inputs.download-artifacts == 'true'
+      uses: actions/download-artifact@v4
+      with:
+        name: release-files
+
     - name: Download and extract build artifacts
       if: inputs.download-artifacts == 'true'
       uses: actions/download-artifact@v4
       with:
         name: ${{ inputs.registry == 'npmjs' && 'dist-files-npmjs' || 'dist-files' }}
 
-    
     - name: Download npmjs package config
       if: inputs.registry == 'npmjs'
       uses: actions/download-artifact@v4
