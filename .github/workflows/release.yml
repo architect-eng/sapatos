@@ -80,6 +80,8 @@ jobs:
 
       - run: npm ci
 
+      - run: npm run lint
+
       - run: npm run build
 
       - name: Publish to npmjs (with OIDC)
