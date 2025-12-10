@@ -21,6 +21,8 @@
     "allowUnreachableCode": false,
     "forceConsistentCasingInFileNames": true,
     "skipLibCheck": true,
+    "incremental": true,
+    "tsBuildInfoFile": ".tsbuildinfo",
     "paths": {
       "*": [
         "src/typings/*"

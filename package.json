@@ -20,6 +20,7 @@
   "scripts": {
     "lint": "eslint --max-warnings 0 src/**/*.ts",
     "typecheck": "tsc --noEmit -p tsconfig.build.json && tsc --noEmit -p tsconfig.test.json",
+    "clean": "rm -rf dist .tsbuildinfo*",
     "build": "npx tsc --project tsconfig.build.json && npx gen-esm-wrapper db db.mjs && npx gen-esm-wrapper generate generate.mjs",
     "test": "vitest run",
     "test:watch": "vitest watch",
@@ -28,7 +29,7 @@
     "integration-tests": "vitest run --config vitest.integration.config.ts",
     "integration-tests:watch": "vitest watch --config vitest.integration.config.ts",
     "version": "npm run lint && npm run build",
-    "postversion": "git push && git push --tags && npm publish",
+    "preversion": "rm -f .tsbuildinfo*",
     "postinstall": "node -e \"console.warn('>>> \\u001b[1;33mSapatos was installed or upgraded. Please (re-)run \\u001b[1;32mnpx sapatos\\u001b[1;33m.\\u001b[0m <<<\\u000a')\"",
     "prepare": "husky"
   },

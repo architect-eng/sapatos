@@ -5,5 +5,9 @@
     "src/**/*.integration.test.ts",
     "src/test-helpers/**",
     "node_modules"
-  ]
+  ],
+  "compilerOptions": {
+    "incremental": true,
+    "tsBuildInfoFile": ".tsbuildinfo"
+  }
 }
