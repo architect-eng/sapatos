@@ -1,9 +1,6 @@
 name: Release
 
 on:
-  push:
-    branches:
-      - master
   schedule:
     # Run monthly on the 1st at midnight UTC (safety net for stale releases)
     - cron: '0 0 1 * *'
@@ -13,90 +10,264 @@ on:
         description: 'Dry run (test without publishing)'
         type: boolean
         default: false
+      release_type:
+        description: 'Release type'
+        type: choice
+        options:
+          - 'patch'
+          - 'minor'
+          - 'major'
 
 permissions:
   contents: write
-  pull-requests: write
   packages: write
   id-token: write
 
 jobs:
-  release-please:
+  version-bump:
+    if: github.ref == 'refs/heads/master'
     runs-on: ubuntu-latest
     outputs:
-      release_created: ${{ steps.release.outputs.release_created }}
-      tag_name: ${{ steps.release.outputs.tag_name }}
       version: ${{ steps.release.outputs.major }}.${{ steps.release.outputs.minor }}.${{ steps.release.outputs.patch }}
+      tag_name: ${{ steps.release.outputs.tag_name }}
     steps:
-      - name: Run Release Please
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Bump version locally
         uses: googleapis/release-please-action@v4
         id: release
         with:
           release-type: node
+          release-as: ${{ github.event.inputs.release_type || '' }}
+          command: manifest-only
+          # Only updates package.json and CHANGELOG.md, no commits or releases
 
-  publish-gh:
-    needs: release-please
-    # Only run if a release was created and not in dry-run mode
-    if: needs.release-please.outputs.release_created && (github.event.inputs.dry_run != 'true')
+      - name: Upload updated files
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-files
+          path: |
+            package.json
+            CHANGELOG.md
+            package-lock.json
+          retention-days: 1
+
+  install:
+    needs:
+      - version-bump
+    # Only run in non-dry-run mode
+    if: github.event.inputs.dry_run != 'true'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - name: Checkout code
+        uses: actions/checkout@v6
 
-      - uses: actions/setup-node@v6
+      - name: Download updated release files
+        uses: actions/download-artifact@v4
         with:
-          node-version: '22'
-          registry-url: 'https://npm.pkg.github.com'
-          scope: '@architect-eng'
-          cache: 'npm'
+          name: release-files
 
-      - run: npm ci
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Setup Node.js and install dependencies
+        uses: ./.github/actions/node-setup
 
-      - run: npm run lint
-
-      - run: npm run build
-
-      - run: npm publish
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-  publish-npmjs:
-    needs: release-please
-    # Only run if a release was created and not in dry-run mode
-    if: needs.release-please.outputs.release_created && (github.event.inputs.dry_run != 'true')
+  lint:
+    needs:
+      - version-bump
+    # Only run in non-dry-run mode
+    if: github.event.inputs.dry_run != 'true'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - name: Checkout code
+        uses: actions/checkout@v6
 
-      - uses: actions/setup-node@v6
+      - name: Download updated release files
+        uses: actions/download-artifact@v4
         with:
-          node-version: '22'
-          registry-url: 'https://registry.npmjs.org'
-          cache: 'npm'
+          name: release-files
 
-      - name: Remove publishConfig
+      - name: Setup Node.js with dependencies
+        uses: ./.github/actions/node-setup
+
+      - name: Run linting
+        shell: bash
+        run: npm run lint
+
+  build:
+    needs:
+      - version-bump
+    # Only run in non-dry-run mode
+    if: github.event.inputs.dry_run != 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Download updated release files
+        uses: actions/download-artifact@v4
+        with:
+          name: release-files
+
+      - name: Build project with caching
+        uses: ./.github/actions/build
+        with:
+          artifact-name: 'dist-files'
+          cache-key-suffix: 'gh'
+          use-ts-cache: 'true'
+
+  configure-npmjs:
+    needs:
+      - version-bump
+      - build
+    # Only run in non-dry-run mode
+    if: github.event.inputs.dry_run != 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Download updated release files
+        uses: actions/download-artifact@v4
+        with:
+          name: release-files
+
+      - name: Setup Node.js with dependencies
+        uses: ./.github/actions/node-setup
+
+      - name: Remove publishConfig for npmjs
+        shell: bash
         run: npm pkg delete publishConfig
 
-      - run: npm ci
+      - name: Upload package.json for npmjs
+        uses: actions/upload-artifact@v4
+        with:
+          name: npmjs-package-config
+          path: package.json
+          retention-days: 1
 
-      - run: npm run lint
+  build-npmjs:
+    needs:
+      - configure-npmjs
+    # Only run in non-dry-run mode
+    if: github.event.inputs.dry_run != 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
 
-      - run: npm run build
+      - name: Download updated release files
+        uses: actions/download-artifact@v4
+        with:
+          name: release-files
 
-      - name: Publish to npmjs (with OIDC)
-        run: npm publish --access public --provenance
+      - name: Download npmjs package config
+        uses: actions/download-artifact@v4
+        with:
+          name: npmjs-package-config
+
+      - name: Setup Node.js with npmjs config
+        uses: ./.github/actions/node-setup
+        with:
+          install-dependencies: 'true'
+
+      - name: Build project for npmjs with caching
+        uses: ./.github/actions/build
+        with:
+          artifact-name: 'dist-files-npmjs'
+          cache-key-suffix: 'npmjs'
+          use-ts-cache: 'true'
+
+  create-release:
+    needs:
+      - version-bump
+      - publish-gh
+      - publish-npmjs
+    # Only run in non-dry-run mode
+    if: github.event.inputs.dry_run != 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Download updated release files
+        uses: actions/download-artifact@v4
+        with:
+          name: release-files
+
+      - name: Create tag on original commit and push
+        shell: bash
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git tag ${{ needs.version-bump.outputs.tag_name }} ${{ github.sha }}
+          git push origin ${{ needs.version-bump.outputs.tag_name }}
+
+      - name: Create GitHub Release
+        uses: googleapis/release-please-action@v4
+        with:
+          release-type: node
+          release-as: ${{ needs.version-bump.outputs.version }}
+          command: github-release
+          # Creates release from the just-pushed tag
+
+  publish-gh:
+    needs:
+      - build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Publish to GitHub Packages
+        uses: ./.github/actions/publish-package
+        with:
+          registry: 'gh'
+
+  publish-npmjs:
+    needs:
+      - build-npmjs
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Publish to npmjs with enhanced OIDC
+        uses: ./.github/actions/publish-package
+        with:
+          registry: 'npmjs'
+
+  push-changes:
+    needs:
+      - publish-gh
+      - publish-npmjs
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Download updated release files
+        uses: actions/download-artifact@v4
+        with:
+          name: release-files
+
+      - name: Commit and push changelog changes
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git add package.json CHANGELOG.md package-lock.json
+          git commit -m "chore: update changelog and package version"
+          git push origin master
 
   dry-run-summary:
-    needs: release-please
-    # Only run in dry-run mode when a release would have been created
-    if: needs.release-please.outputs.release_created && (github.event.inputs.dry_run == 'true')
+    needs: version-bump
+    # Only run in dry-run mode
+    if: github.event.inputs.dry_run == 'true'
     runs-on: ubuntu-latest
     steps:
       - name: Dry Run Summary
         run: |
-          echo "🧪 DRY RUN MODE - No packages published"
-          echo "📋 Would have published: ${{ needs.release-please.outputs.tag_name }}"
-          echo "📦 Package: @architect-eng/sapatos@${{ needs.release-please.outputs.version }}"
-          echo "🔄 Would publish to both GitHub Packages and npmjs"
-          echo "ℹ️  Merge the Release PR to trigger actual publication"
+          echo "DRY RUN MODE - No packages published"
+          echo "Would have published: ${{ needs.version-bump.outputs.tag_name }}"
+          echo "Package: @architect-eng/sapatos@${{ needs.version-bump.outputs.version }}"
+          echo "Would execute: version-bump → install → lint → build → configure-npmjs → build-npmjs → create-release (tag+release) → publish-gh → publish-npmjs → push-changes"
