@@ -85,7 +85,7 @@ jobs:
       - run: npm run build
 
       - name: Publish to npmjs (with OIDC)
-        run: npm publish --access public
+        run: npm publish --access public --provenance
 
   dry-run-summary:
     needs: release-please
