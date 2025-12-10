@@ -54,24 +54,7 @@ jobs:
             package-lock.json
           retention-days: 1
 
-  install:
-    needs:
-      - version-bump
-    # Only run in non-dry-run mode
-    if: github.event.inputs.dry_run != 'true'
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v6
-
-      - name: Download updated release files
-        uses: actions/download-artifact@v4
-        with:
-          name: release-files
-
-      - name: Setup Node.js and install dependencies
-        uses: ./.github/actions/node-setup
-
+  
   lint:
     needs:
       - version-bump
@@ -214,6 +197,7 @@ jobs:
   publish-gh:
     needs:
       - build
+      - lint
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code

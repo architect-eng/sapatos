@@ -28,16 +28,16 @@ graph TD
 
 ## Job Dependencies
 
-- `install` → `version-bump`
-- `version-bump` → `build` → `configure-npmjs` → `build-npmjs`
-- `lint` runs independently (no dependencies needed)
-- `build` → `publish-gh` (GitHub Packages)
+- `version-bump` → `lint`, `build`, `configure-npmjs`
+- `build` → `configure-npmjs` → `build-npmjs`
+- `lint` and `build` → `publish-gh` (must pass for publishing)
 - `build-npmjs` → `publish-npmjs` (npmjs)
 - `publish-gh`, `publish-npmjs`, `version-bump` → `create-release` (tag original commit)
 - `create-release` → `push-changes` (commit version updates)
 
 ### Parallel Execution
-- `lint` runs parallel with build chain
+- `lint` runs parallel with build and configure-npmjs
+- `publish-gh` waits for both lint and build to pass
 - `publish-gh` runs parallel with npmjs build chain
 - TypeScript cache shared between builds
 
@@ -47,7 +47,6 @@ graph TD
 graph LR
     subgraph "Build & Cache"
         A1[version-bump<br/>local version bump<br/>uploads release-files]
-        A1 --> B1[install<br/>GitHub Actions cache]
         A1 --> C1[lint]
         A1 --> D1[build] --> E1[TypeScript cache + dist-files]
         F1[configure-npmjs<br/>removes publishConfig]
