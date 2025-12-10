@@ -1,0 +1,65 @@
+name: 'Node.js Setup with Caching'
+description: 'Sets up Node.js and handles dependencies with GitHub Actions cache'
+
+inputs:
+  node-version:
+    description: 'Node.js version to use'
+    required: false
+    default: '22'
+  registry-url:
+    description: 'Registry URL for npm packages'
+    required: false
+  scope:
+    description: 'npm scope for packages'
+    required: false
+  cache:
+    description: 'Cache npm dependencies'
+    required: false
+    default: 'true'
+  install-dependencies:
+    description: 'Whether to install dependencies'
+    required: false
+    default: 'true'
+  cache-dependency-path:
+    description: 'Path to dependency file for cache key'
+    required: false
+    default: 'package-lock.json'
+
+outputs:
+  node-version:
+    description: 'The Node.js version that was set up'
+    value: ${{ steps.setup-node.outputs.node-version }}
+  cache-hit:
+    description: 'Whether the cache was hit'
+    value: ${{ steps.cache.outputs.cache-hit }}
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Setup Node.js
+      id: setup-node
+      uses: actions/setup-node@v6
+      with:
+        node-version: ${{ inputs.node-version }}
+        registry-url: ${{ inputs.registry-url }}
+        scope: ${{ inputs.scope }}
+
+    - name: Cache dependencies
+      id: cache
+      if: inputs.cache == 'true'
+      uses: actions/cache@v4
+      with:
+        path: |
+          ~/.npm
+          node_modules
+        key: ${{ runner.os }}-node-v${{ inputs.node-version }}-${{ hashFiles(inputs.cache-dependency-path) }}
+        restore-keys: |
+          ${{ runner.os }}-node-v${{ inputs.node-version }}-
+          ${{ runner.os }}-node-
+
+    - name: Install dependencies
+      if: inputs.install-dependencies == 'true'
+      shell: bash
+      run: npm ci --prefer-offline --no-audit --no-fund
+
+    

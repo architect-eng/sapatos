@@ -1,0 +1,87 @@
+name: 'Publish Package to Registry'
+description: 'Publishes package to specified npm registry with enhanced OIDC and artifact support'
+
+inputs:
+  registry:
+    description: 'Registry to publish to (gh or npmjs)'
+    required: true
+  download-artifacts:
+    description: 'Whether to download build artifacts'
+    required: false
+    default: 'true'
+  remove-publish-config:
+    description: 'Whether to remove publishConfig before publishing'
+    required: false
+    default: 'false'
+  publish-flags:
+    description: 'Additional flags for npm publish'
+    required: false
+    default: '--access public'
+  use-oidc:
+    description: 'Whether to use OIDC for authentication'
+    required: false
+    default: 'auto'
+  token-secret:
+    description: 'Secret name for authentication token'
+    required: false
+    default: 'GITHUB_TOKEN'
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Download and extract build artifacts
+      if: inputs.download-artifacts == 'true'
+      uses: actions/download-artifact@v4
+      with:
+        name: ${{ inputs.registry == 'npmjs' && 'dist-files-npmjs' || 'dist-files' }}
+
+    
+    - name: Download npmjs package config
+      if: inputs.registry == 'npmjs'
+      uses: actions/download-artifact@v4
+      with:
+        name: npmjs-package-config
+
+    - name: Setup Node.js for ${{ inputs.registry }}
+      uses: ./.github/actions/node-setup
+      with:
+        registry-url: ${{ inputs.registry == 'gh' && 'https://npm.pkg.github.com' || 'https://registry.npmjs.org' }}
+        scope: ${{ inputs.registry == 'gh' && '@architect-eng' || '' }}
+        install-dependencies: 'false'
+
+    - name: Remove publishConfig for npmjs
+      if: inputs.remove-publish-config == 'true'
+      shell: bash
+      run: npm pkg delete publishConfig
+
+    - name: Determine OIDC usage
+      id: oidc-config
+      shell: bash
+      run: |
+        USE_OIDC="${{ inputs.use-oidc }}"
+        if [[ "$USE_OIDC" == "auto" ]]; then
+          USE_OIDC="${{ inputs.registry == 'npmjs' && 'true' || 'false' }}"
+        fi
+        echo "use-oidc=$USE_OIDC" >> $GITHUB_OUTPUT
+        echo "OIDC will be used: $USE_OIDC"
+
+    - name: Publish to ${{ inputs.registry }}
+      shell: bash
+      run: |
+        PUBLISH_FLAGS="${{ inputs.publish-flags }}"
+        USE_OIDC="${{ steps.oidc-config.outputs.use-oidc }}"
+
+        if [[ "$USE_OIDC" == "true" ]]; then
+          PUBLISH_FLAGS="$PUBLISH_FLAGS --provenance"
+          echo "Publishing with OIDC authentication and provenance"
+        else
+          echo "Publishing with token authentication"
+        fi
+
+        echo "Publish flags: $PUBLISH_FLAGS"
+        npm publish $PUBLISH_FLAGS
+      env:
+        NODE_AUTH_TOKEN: ${{ steps.oidc-config.outputs.use-oidc == 'true' && '' || secrets[inputs.token-secret] }}
+        # OIDC audience specification for enhanced security
+        ACTIONS_ID_TOKEN_REQUEST_URL: ${{ steps.oidc-config.outputs.use-oidc == 'true' && 'token.actions.githubusercontent.com' || '' }}
+        ACTIONS_ID_TOKEN_REQUEST_TOKEN: ${{ steps.oidc-config.outputs.use-oidc == '' || '' }}

@@ -1,0 +1,62 @@
+name: 'Build Project with Caching'
+description: 'Builds the project with TypeScript cache and compressed artifacts'
+
+inputs:
+  upload-artifacts:
+    description: 'Whether to upload build artifacts'
+    required: false
+    default: 'true'
+  artifact-name:
+    description: 'Name for the build artifacts'
+    required: false
+    default: 'dist-files'
+  cache-key-suffix:
+    description: 'Additional suffix for cache key'
+    required: false
+    default: ''
+  use-ts-cache:
+    description: 'Whether to use TypeScript build cache'
+    required: false
+    default: 'true'
+
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Setup Node.js with dependencies
+      uses: ./.github/actions/node-setup
+
+    - name: Cache TypeScript build
+      id: ts-cache
+      if: inputs.use-ts-cache == 'true'
+      uses: actions/cache@v4
+      with:
+        path: |
+          .tsbuildinfo
+          dist/
+        key: ${{ runner.os }}-ts-build-v${{ inputs.cache-key-suffix }}-${{ hashFiles('**/src/**/*.ts', '**/tsconfig*.json', 'package.json') }}
+        restore-keys: |
+          ${{ runner.os }}-ts-build-v${{ inputs.cache-key-suffix }}-
+          ${{ runner.os }}-ts-build-
+
+    - name: Build project
+      shell: bash
+      run: |
+        if [ "${{ steps.ts-cache.outputs.cache-hit }}" == "true" ]; then
+          echo "TypeScript cache hit! Skipping rebuild."
+        else
+          echo "TypeScript cache miss, building..."
+          npm run build
+        fi
+
+    - name: Upload build artifacts
+      if: inputs.upload-artifacts == 'true'
+      uses: actions/upload-artifact@v4
+      with:
+        name: ${{ inputs.artifact-name }}
+        path: |
+          dist/
+          *.js
+          *.mjs
+          *.d.ts
+        retention-days: 7
