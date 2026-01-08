@@ -17,7 +17,6 @@ on:
 permissions:
   contents: write
   pull-requests: write
-  packages: write
   id-token: write
 
 jobs:
@@ -34,38 +33,12 @@ jobs:
         with:
           release-type: node
 
-  publish-gh:
+  publish:
     needs: release-please
     # Only run if a release was created and not in dry-run mode
     if: needs.release-please.outputs.release_created && (github.event.inputs.dry_run != 'true')
     runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v6
-
-      - uses: actions/setup-node@v6
-        with:
-          node-version: '22'
-          registry-url: 'https://npm.pkg.github.com'
-          scope: '@architect-eng'
-          cache: 'npm'
-
-      - run: npm ci
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - run: npm run lint
-
-      - run: npm run build
-
-      - run: npm publish
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-  publish-npmjs:
-    needs: release-please
-    # Only run if a release was created and not in dry-run mode
-    if: needs.release-please.outputs.release_created && (github.event.inputs.dry_run != 'true')
-    runs-on: ubuntu-latest
+    environment: npm
     steps:
       - uses: actions/checkout@v6
 
@@ -75,17 +48,19 @@ jobs:
           registry-url: 'https://registry.npmjs.org'
           cache: 'npm'
 
-      - name: Remove publishConfig
-        run: npm pkg delete publishConfig
-
       - run: npm ci
 
       - run: npm run lint
 
       - run: npm run build
 
-      - name: Publish to npmjs (with OIDC)
+      - name: Publish to npm
         run: npm publish --access public --provenance
+
+      - name: Output published info
+        run: |
+          echo "✅ Published ${{ needs.release-please.outputs.tag_name }} to npm"
+          echo "📦 Package: @architect-eng/sapatos@${{ needs.release-please.outputs.version }}"
 
   dry-run-summary:
     needs: release-please
@@ -98,5 +73,4 @@ jobs:
           echo "🧪 DRY RUN MODE - No packages published"
           echo "📋 Would have published: ${{ needs.release-please.outputs.tag_name }}"
           echo "📦 Package: @architect-eng/sapatos@${{ needs.release-please.outputs.version }}"
-          echo "🔄 Would publish to both GitHub Packages and npmjs"
           echo "ℹ️  Merge the Release PR to trigger actual publication"
