@@ -15,20 +15,20 @@ jobs:
       matrix:
         include:
           # Test all PostgreSQL versions on Node 22.x (stable)
-          - node-version: 22.x
+          - node-version: 24.x
             postgres-version: "17"
-          - node-version: 22.x
+          - node-version: 24.x
             postgres-version: "16"
-          - node-version: 22.x
+          - node-version: 24.x
             postgres-version: "15"
-          - node-version: 22.x
+          - node-version: 24.x
             postgres-version: "14"
-          - node-version: 22.x
+          - node-version: 24.x
             postgres-version: "13"
           # Test all Node versions on PostgreSQL 17 (latest stable)
           - node-version: 20.x
             postgres-version: "17"
-          - node-version: 24.x
+          - node-version: 22.x
             postgres-version: "17"
 
     steps:
