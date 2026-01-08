@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.7.1](https://github.com/architect-eng/sapatos/compare/v0.7.0...v0.7.1) (2026-01-08)
+
+
+### Bug Fixes
+
+* don't allow manual release version override ([c9330cb](https://github.com/architect-eng/sapatos/commit/c9330cbf5d9b8f3c0a4990e18bd1d9b9fdd48069))
+
 ## [0.7.0](https://github.com/architect-eng/sapatos/compare/v0.6.1...v0.7.0) (2026-01-08)
 
 
