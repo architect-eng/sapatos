@@ -13,6 +13,10 @@ on:
         description: 'Dry run (test without publishing)'
         type: boolean
         default: false
+      release_as:
+        description: 'Force a specific version (e.g., "1.0.0") - leave empty for automatic'
+        type: string
+        default: ''
 
 permissions:
   contents: write
@@ -32,6 +36,9 @@ jobs:
         id: release
         with:
           release-type: node
+          bump-minor-pre-major: true
+          bump-patch-for-minor-pre-major: true
+          release-as: ${{ github.event.inputs.release_as || '' }}
 
   publish:
     needs: release-please
