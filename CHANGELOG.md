@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.7.0](https://github.com/architect-eng/sapatos/compare/v0.6.1...v0.7.0) (2026-01-08)
+
+
+### Features
+
+* add npmjs publishing with OIDC to release workflow ([7e3dfcd](https://github.com/architect-eng/sapatos/commit/7e3dfcd8029aa5950cd846697f258fbf2d573a6f))
+
+
+### Bug Fixes
+
+* add --provenance flag for npmjs OIDC publishing ([2338547](https://github.com/architect-eng/sapatos/commit/233854799f9a3b59b4f88862df7faab1a10624b4))
+* add missing lint step to publish-npmjs job ([d79bd75](https://github.com/architect-eng/sapatos/commit/d79bd75bb5c472293d9b1424374adde838ff93bf))
+* normalize repository URL to npm's preferred format ([ebb1346](https://github.com/architect-eng/sapatos/commit/ebb1346328957cbc632b1f0600120440627297c5))
+
 ## [0.6.1](https://github.com/architect-eng/sapatos/compare/v0.6.0...v0.6.1) (2025-12-03)
 
 
