@@ -55,7 +55,7 @@ jobs:
       - run: npm run build
 
       - name: Publish to npm
-        run: npm publish --access public --provenance
+        run: npm publish
 
       - name: Output published info
         run: |
